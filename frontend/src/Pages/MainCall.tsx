@@ -1,7 +1,7 @@
 import { webSocketContext } from "../context/WebSocketContextProvider";
 import { RTCPeerConnectionContext } from "../context/RTCPeerConnectionContextProvider";
 import { useContext, useEffect,useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import * as CustomTypes from "../types"
 
 /*
@@ -12,11 +12,17 @@ since RTCPeerConnection chnages frequently, but we dont want react component to 
 
 export function MainCall(){
     const socket = useContext<WebSocket|null>(webSocketContext);
+    const myPeerConnection=useContext<RTCPeerConnection|null>(RTCPeerConnectionContext);
     const receivedVideoRef = useRef<HTMLVideoElement|null>(null);
     const localVideoRef = useRef<HTMLVideoElement|null>(null);
     const hangUpButtonRef = useRef<HTMLButtonElement|null>(null);
     const location = useLocation();
-    const {username,roomId,targetUsername,peerConnection} = location.state;
+    const state:CustomTypes.landingToMainCallLocationState = location.state;
+    const username:string = state.username;
+    const role:string = state.role;
+    const targetUsername:string = state.targetUsername;
+    const roomID:string = state.roomID
+    const Navigate = useNavigate();
     function closeVideoCall(myPeerConnection:RTCPeerConnection) {
         if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
         if(!localVideoRef.current) throw new Error("localVideoRef is null");
@@ -40,6 +46,7 @@ export function MainCall(){
         }
         if(!hangUpButtonRef.current) throw new Error("hangUpButtonRef is null")
         hangUpButtonRef.current.disabled = true;
+        Navigate("/");
     }
 
     function handleTrackEvent(event:RTCTrackEvent){
@@ -76,7 +83,6 @@ export function MainCall(){
     }
 
     function createPeerConnection():RTCPeerConnection{
-        const myPeerConnection=useContext<RTCPeerConnection|null>(RTCPeerConnectionContext);
         if(!myPeerConnection) throw new Error("peerConnection is null");
         myPeerConnection.ontrack=handleTrackEvent;
         myPeerConnection.onicecandidate=handleIceCandidateEvent;
@@ -112,14 +118,12 @@ export function MainCall(){
     }
 
     async function handleVideoAnswer(json_message:CustomTypes.videoAnswerType){
-        const myPeerConnection = useContext<RTCPeerConnection|null>(RTCPeerConnectionContext);
         if(!myPeerConnection) throw new Error("peerConnection is null");
         const desc:RTCSessionDescription = new RTCSessionDescription(json_message.sdp);
         await myPeerConnection.setRemoteDescription(desc);
     }
 
     async function handleNewIceCandidate(json_message:CustomTypes.newIceCandidateType){
-        const myPeerConnection = useContext<RTCPeerConnection|null>(RTCPeerConnectionContext);
         if(!myPeerConnection) throw new Error("peerConnection is null");
         const candidate:RTCIceCandidate = new RTCIceCandidate(json_message.candidate);
         try{
@@ -129,7 +133,29 @@ export function MainCall(){
             console.log(e);
         }
     }
-    useEffect(()=>{
+    useEffect(()=>{ //landing to maincall page rtc caller/callee split
+        if(role == "caller"){
+            const myPeerConnection:RTCPeerConnection=createPeerConnection();
+            async function getUserMedia(){
+                const mediaConstraints = {
+                    audio:true,
+                    video:true
+                }
+                const stream:MediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+                return stream;
+            }
+            getUserMedia().then((stream:MediaStream)=>{
+                if (!localVideoRef.current) throw new Error("localVideoRef is null");
+                localVideoRef.current.srcObject = stream; 
+                const tracks:MediaStreamTrack[] = stream.getTracks();
+                for(const track of tracks){
+                    myPeerConnection.addTrack(track,stream);
+                }
+            })
+        }
+    },[])
+
+    useEffect(()=>{ //websockets incoming message handler
         if(socket && socket.readyState==WebSocket.OPEN){
             socket.onmessage=async (msg:MessageEvent<string>)=>{
                 const json_message:CustomTypes.frontendType=JSON.parse(msg.data);
@@ -144,7 +170,8 @@ export function MainCall(){
                 }
             }
         }
-    },[])
+
+    },[socket])
     return <>
     <video className="received_video" ref={receivedVideoRef} autoPlay={true}></video>
     <video className="local_video" ref={localVideoRef} autoPlay={true} muted={true}></video>

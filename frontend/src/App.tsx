@@ -1,12 +1,17 @@
-import { Route,Routes } from "react-router-dom";
+import { BrowserRouter, Route,Routes } from "react-router-dom";
 import { MainCall } from "./Pages/MainCall";
+import { Landing } from "./Pages/Landing";
 import { WebSocketContextProvider } from "./context/WebSocketContextProvider";
 import { RTCPeerConnectionContextProvider } from "./context/RTCPeerConnectionContextProvider";
 
 export default function App() {
-  return (<WebSocketContextProvider><RTCPeerConnectionContextProvider>
+  return (
+  <BrowserRouter>
+  <WebSocketContextProvider><RTCPeerConnectionContextProvider>
   <Routes>
-    <Route element={<MainCall/>} path="/"/>
+    <Route element={<Landing/>} path="/"/>
+    <Route element={<MainCall/>} path="/MainCall"/>
   </Routes>
-  </RTCPeerConnectionContextProvider></WebSocketContextProvider>)
+  </RTCPeerConnectionContextProvider></WebSocketContextProvider>
+  </BrowserRouter>)
 }

@@ -44,7 +44,8 @@ export const makeUserResponseSchema=z.object({
     type:z.literal("make-user"),
     success:z.enum(["yes","no"]),
     role:z.enum(["caller","callee"]),
-    targetUsername:z.string()
+    targetUsername:z.string(),
+    error:z.optional(z.string())
 })
 
 
