@@ -23,7 +23,7 @@ function printMapStringStringList(mpp:Map<string,string[]>){
         console.log(key,":",value);
     }
 }
-setInterval(() => printMapStringStringList(roomCodeToUsernames), 10000)
+setInterval(() => printMapStringStringList(roomCodeToUsernames), 2000)
 wss.on("connection",function(ws:WebSocket){
     ws.on("message",(msg:WebSocket.RawData)=>{
         const json_message:CustomTypes.frontendType=JSON.parse(msg.toString());
