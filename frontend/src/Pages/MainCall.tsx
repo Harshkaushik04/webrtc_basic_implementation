@@ -111,12 +111,17 @@ export function MainCall(){
             audio:true,
             video:true
         }
-        const localStream:MediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-        if(!localVideoRef.current) throw new Error("localVideoRef is null");
-        localVideoRef.current.srcObject=localStream;
-        const tracks:MediaStreamTrack[] = localStream.getTracks();
-        for(const track of tracks){
-            myPeerConnection.addTrack(track,localStream);
+        try{
+            const localStream:MediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints); 
+            if(!localVideoRef.current) throw new Error("localVideoRef is null");
+            localVideoRef.current.srcObject=localStream;
+            const tracks:MediaStreamTrack[] = localStream.getTracks();
+            for(const track of tracks){
+                myPeerConnection.addTrack(track,localStream);
+            }  
+        }
+        catch(e){
+            console.log(`error:${e}`);
         }
         const answer_offer:RTCSessionDescriptionInit = await myPeerConnection.createAnswer();
         await myPeerConnection.setLocalDescription(answer_offer);
@@ -154,8 +159,15 @@ export function MainCall(){
                     audio:true,
                     video:true
                 }
-                const stream:MediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-                return stream;
+                let stream:MediaStream= new MediaStream();
+                try{
+                    stream= await navigator.mediaDevices.getUserMedia(mediaConstraints);
+                    return stream;
+                }
+                catch(e){
+                    console.log(`error:${e}`)
+                }
+               return stream;
             }
             getUserMedia().then((stream:MediaStream)=>{
                 if (!localVideoRef.current) throw new Error("localVideoRef is null");
@@ -188,8 +200,8 @@ export function MainCall(){
 
     },[socket])
     return <>
-    <video className="received_video" ref={receivedVideoRef} autoPlay={true}></video>
-    <video className="local_video" ref={localVideoRef} autoPlay={true} muted={true}></video>
-    <button className="hang-up-button" ref={hangUpButtonRef} disabled={true}></button>
+    <video className="received_video" ref={receivedVideoRef} autoPlay playsInline></video>
+    <video className="local_video" ref={localVideoRef} autoPlay muted playsInline></video>
+    <button className="hang-up-button" ref={hangUpButtonRef} disabled={true}>Hang Up</button>
     </>
 }
