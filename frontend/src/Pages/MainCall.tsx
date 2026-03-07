@@ -52,7 +52,12 @@ export function MainCall(){
         console.log(`${username}:[handleTrackEvent]`)
         if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
         if(!hangUpButtonRef.current) throw new Error("hangUpButtonRef is null");
-        receivedVideoRef.current.srcObject=event.streams[0];
+        
+        // FIX: Only set the srcObject if it hasn't been set yet to prevent flickering/restarts
+        if (receivedVideoRef.current.srcObject !== event.streams[0]) {
+            receivedVideoRef.current.srcObject = event.streams[0];
+        }
+        
         hangUpButtonRef.current.disabled=false;
     }
 
