@@ -21,7 +21,6 @@ export function MainCall(){
     const username:string = state.username;
     const role:string = state.role;
     const targetUsername:string = state.targetUsername;
-    const roomCode:string = state.roomCode
     const Navigate = useNavigate();
     function closeVideoCall(myPeerConnection:RTCPeerConnection) {
         if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
