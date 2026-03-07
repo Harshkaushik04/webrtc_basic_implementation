@@ -74,10 +74,17 @@ export function MainCall(){
     }
 
     async function handleNegotationNeededEvent(event:Event){
-        // "In WebRTC, adding a track automatically fires the onnegotiationneeded event"
         console.log(`${username}:[handleNegotiationNeededEvent]`)
         if(role == "callee") return;
+        
         const myPeerConnection = event.target as RTCPeerConnection;
+        
+        // FIX: Abort if we are already in the middle of negotiating an offer
+        if (myPeerConnection.signalingState !== "stable") {
+            console.log("Negotiation already in progress, skipping...");
+            return;
+        }
+
         try{
             const offer:RTCSessionDescriptionInit = await myPeerConnection.createOffer();
             await myPeerConnection.setLocalDescription(offer);
