@@ -169,19 +169,21 @@ export function MainCall(){
     },[])
 
     useEffect(()=>{ //websockets incoming message handler
-        if(socket && socket.readyState==WebSocket.OPEN){
-            socket.onmessage=async (msg:MessageEvent<string>)=>{
-                const json_message:CustomTypes.frontendType=JSON.parse(msg.data);
-                if(json_message.type=="video-offer"){
-                    await handleVideoOffer(json_message);
-                }
-                else if(json_message.type=="video-answer"){
-                    await handleVideoAnswer(json_message);
-                }
-                else if(json_message.type=="new-ice-candidate"){
-                    await handleNewIceCandidate(json_message);
-                }
+        if(!socket) return; 
+        socket.onmessage=async (msg:MessageEvent<string>)=>{
+            const json_message:CustomTypes.frontendType=JSON.parse(msg.data);
+            if(json_message.type=="video-offer"){
+                await handleVideoOffer(json_message);
             }
+            else if(json_message.type=="video-answer"){
+                await handleVideoAnswer(json_message);
+            }
+            else if(json_message.type=="new-ice-candidate"){
+                await handleNewIceCandidate(json_message);
+            }
+        }
+        return ()=>{
+            socket.onmessage=null;
         }
 
     },[socket])

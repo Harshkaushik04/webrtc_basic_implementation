@@ -63,7 +63,7 @@ wss.on("connection",function(ws:WebSocket){
                     const usernames:string[]|undefined=roomCodeToUsernames.get(roomCode);
                     if(usernames){
                         const index:number=usernames.indexOf(username);
-                        usernames.splice(index,1)
+                        if(index>-1) usernames.splice(index,1);
                     }
                 }
             }
