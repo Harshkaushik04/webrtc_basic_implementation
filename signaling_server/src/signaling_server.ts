@@ -3,7 +3,7 @@ import express from "express"
 import cors from "cors"
 import * as CustomSchemas from "./schemas.js"
 import * as CustomTypes from "./types.js"
-import { success } from "zod";
+import {createServer} from "http"
 
 let wsToUsername=new Map<WebSocket,string>();
 let usernameToWs=new Map<string,WebSocket>();
@@ -12,10 +12,11 @@ let usernameToRoomCode=new Map<string,string>();
 
 const app=express()
 app.use(cors({
-    origin:"http://localhost:5173"
+    origin:"*"
 }));
 app.use(express.json());
-const wss = new WebSocketServer({port:8080});
+const server = createServer(app);
+const wss = new WebSocketServer({server});
 
 wss.on("connection",function(ws:WebSocket){
     ws.on("message",(msg:WebSocket.RawData)=>{
@@ -62,7 +63,7 @@ wss.on("connection",function(ws:WebSocket){
                     const usernames:string[]|undefined=roomCodeToUsernames.get(roomCode);
                     if(usernames){
                         const index:number=usernames.indexOf(username);
-                        usernames.splice(index,1)
+                        if(index>-1) usernames.splice(index,1);
                     }
                 }
             }
