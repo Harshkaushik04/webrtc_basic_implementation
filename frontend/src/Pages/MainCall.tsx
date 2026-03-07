@@ -21,7 +21,6 @@ export function MainCall(){
     const username:string = state.username;
     const role:string = state.role;
     const targetUsername:string = state.targetUsername;
-    const roomCode:string = state.roomCode
     const Navigate = useNavigate();
     function closeVideoCall(myPeerConnection:RTCPeerConnection) {
         if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
@@ -53,6 +52,9 @@ export function MainCall(){
         console.log(`${username}:[handleTrackEvent]`)
         if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
         if(!hangUpButtonRef.current) throw new Error("hangUpButtonRef is null");
+        if(receivedVideoRef.current.srcObject !==event.streams[0]){
+            receivedVideoRef.current.srcObject = event.streams[0];
+        }
         receivedVideoRef.current.srcObject=event.streams[0];
         hangUpButtonRef.current.disabled=false;
     }
@@ -78,7 +80,11 @@ export function MainCall(){
         // "In WebRTC, adding a track automatically fires the onnegotiationneeded event"
         console.log(`${username}:[handleNegotiationNeededEvent]`)
         if(role == "callee") return;
-        const myPeerConnection = event.target as RTCPeerConnection;
+        if(!myPeerConnection) throw new Error("peer connection is null");
+        if (myPeerConnection.signalingState !== "stable") {
+            console.log("Negotiation already in progress, skipping...");
+            return;
+        }
         try{
             const offer:RTCSessionDescriptionInit = await myPeerConnection.createOffer();
             await myPeerConnection.setLocalDescription(offer);
@@ -112,12 +118,17 @@ export function MainCall(){
             audio:true,
             video:true
         }
-        const localStream:MediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-        if(!localVideoRef.current) throw new Error("localVideoRef is null");
-        localVideoRef.current.srcObject=localStream;
-        const tracks:MediaStreamTrack[] = localStream.getTracks();
-        for(const track of tracks){
-            myPeerConnection.addTrack(track,localStream);
+        try{
+            const localStream:MediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+            if(!localVideoRef.current) throw new Error("localVideoRef is null");
+            localVideoRef.current.srcObject=localStream;
+            const tracks:MediaStreamTrack[] = localStream.getTracks();
+            for(const track of tracks){
+                myPeerConnection.addTrack(track,localStream);
+            }
+        }
+        catch(e){
+            console.log(`error:${e}`);
         }
         const answer_offer:RTCSessionDescriptionInit = await myPeerConnection.createAnswer();
         await myPeerConnection.setLocalDescription(answer_offer);
@@ -155,7 +166,14 @@ export function MainCall(){
                     audio:true,
                     video:true
                 }
-                const stream:MediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+                let stream:MediaStream = new MediaStream();
+                try{
+                    stream=await navigator.mediaDevices.getUserMedia(mediaConstraints);
+                    return stream;
+                }
+                catch(e){
+                    console.log(`error:${e}`);
+                }
                 return stream;
             }
             getUserMedia().then((stream:MediaStream)=>{
@@ -170,25 +188,27 @@ export function MainCall(){
     },[])
 
     useEffect(()=>{ //websockets incoming message handler
-        if(socket && socket.readyState==WebSocket.OPEN){
-            socket.onmessage=async (msg:MessageEvent<string>)=>{
-                const json_message:CustomTypes.frontendType=JSON.parse(msg.data);
-                if(json_message.type=="video-offer"){
-                    await handleVideoOffer(json_message);
-                }
-                else if(json_message.type=="video-answer"){
-                    await handleVideoAnswer(json_message);
-                }
-                else if(json_message.type=="new-ice-candidate"){
-                    await handleNewIceCandidate(json_message);
-                }
+        if(!socket) return;
+        socket.onmessage=async (msg:MessageEvent<string>)=>{
+            const json_message:CustomTypes.frontendType=JSON.parse(msg.data);
+            if(json_message.type=="video-offer"){
+                await handleVideoOffer(json_message);
             }
+            else if(json_message.type=="video-answer"){
+                await handleVideoAnswer(json_message);
+            }
+            else if(json_message.type=="new-ice-candidate"){
+                await handleNewIceCandidate(json_message);
+            }
+        }
+        return ()=>{
+            socket.onmessage=null;
         }
 
     },[socket])
     return <>
-    <video className="received_video" ref={receivedVideoRef} autoPlay={true}></video>
-    <video className="local_video" ref={localVideoRef} autoPlay={true} muted={true}></video>
+    <video className="received_video" ref={receivedVideoRef} autoPlay playsInline></video>
+    <video className="local_video" ref={localVideoRef} autoPlay playsInline></video>
     <button className="hang-up-button" ref={hangUpButtonRef} disabled={true}></button>
     </>
 }
