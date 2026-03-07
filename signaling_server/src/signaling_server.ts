@@ -18,6 +18,12 @@ app.use(express.json());
 const server = createServer(app);
 const wss = new WebSocketServer({server});
 
+function printMapStringStringList(mpp:Map<string,string[]>){
+    for(const [key,value] of mpp){
+        console.log(key,":",value);
+    }
+}
+setInterval(() => printMapStringStringList(roomCodeToUsernames), 10000)
 wss.on("connection",function(ws:WebSocket){
     ws.on("message",(msg:WebSocket.RawData)=>{
         const json_message:CustomTypes.frontendType=JSON.parse(msg.toString());
@@ -138,6 +144,6 @@ app.post("/make-user",async(req,res)=>{
     }
 })
 
-app.listen(3000,()=>{
-    console.log("http server started running at port 3000\n")
+server.listen(3000,()=>{
+    console.log("http and ws server are running at port 3000\n")
 });

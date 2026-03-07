@@ -55,7 +55,6 @@ export function MainCall(){
         if(receivedVideoRef.current.srcObject !==event.streams[0]){
             receivedVideoRef.current.srcObject = event.streams[0];
         }
-        receivedVideoRef.current.srcObject=event.streams[0];
         hangUpButtonRef.current.disabled=false;
     }
 
@@ -208,7 +207,7 @@ export function MainCall(){
     },[socket])
     return <>
     <video className="received_video" ref={receivedVideoRef} autoPlay playsInline></video>
-    <video className="local_video" ref={localVideoRef} autoPlay playsInline></video>
+    <video className="local_video" ref={localVideoRef} autoPlay muted playsInline></video>
     <button className="hang-up-button" ref={hangUpButtonRef} disabled={true}></button>
     </>
 }
