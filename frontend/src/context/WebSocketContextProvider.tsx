@@ -9,7 +9,7 @@ export const WebSocketContext=createContext<WebSocket|null>(null);
 export function WebSocketContextProvider({children}:Props){
     const socketRef = useRef<WebSocket|null>(null);
     if(!socketRef.current){
-        socketRef.current = new WebSocket("ws://localhost:8080");
+        socketRef.current = new WebSocket("wss://localhost:8080");
     }
     useEffect(()=>{
         return ()=>{
