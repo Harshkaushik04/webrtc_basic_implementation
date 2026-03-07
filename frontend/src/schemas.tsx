@@ -32,7 +32,12 @@ export const newIceCandidateSchema=z.object({
     candidate:RTCIceCandidateSchema
 })
 
-export const frontendSchema=z.union([videoOfferSchema,videoAnswerSchema,newIceCandidateSchema])
+export const wsMakeUserRequestSchema=z.object({ //not sending roomCode because that logic is handled by http server
+    type:z.literal("make-user"),
+    username:z.string()
+})
+
+export const frontendSchema=z.union([videoOfferSchema,videoAnswerSchema,newIceCandidateSchema,wsMakeUserRequestSchema])
 
 export const makeUserRequestSchema=z.object({
     type:z.literal("make-user"),
@@ -44,13 +49,14 @@ export const makeUserResponseSchema=z.object({
     type:z.literal("make-user"),
     success:z.enum(["yes","no"]),
     role:z.enum(["caller","callee"]),
-    targetUsername:z.string()
+    targetUsername:z.string(),
+    error:z.optional(z.string())
 })
 
 
-export const landingToMainCallLocationState=z.object({
+export const landingToMainCallLocationStateSchema=z.object({
     username:z.string(),
-    roomID:z.string(),
+    roomCode:z.string(),
     role:z.enum(["caller","callee"]),
     targetUsername:z.string()
 })

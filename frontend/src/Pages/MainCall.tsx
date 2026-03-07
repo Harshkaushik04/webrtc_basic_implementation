@@ -1,8 +1,8 @@
-import { webSocketContext } from "../context/WebSocketContextProvider";
+import { WebSocketContext } from "../context/WebSocketContextProvider";
 import { RTCPeerConnectionContext } from "../context/RTCPeerConnectionContextProvider";
 import { useContext, useEffect,useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import * as CustomTypes from "../types"
+import * as CustomTypes from "../types.js"
 
 /*
 useState() vs useRef() for storing RTCPeerConnection:
@@ -11,17 +11,17 @@ since RTCPeerConnection chnages frequently, but we dont want react component to 
  */
 
 export function MainCall(){
-    const socket = useContext<WebSocket|null>(webSocketContext);
+    const socket = useContext<WebSocket|null>(WebSocketContext);
     const myPeerConnection=useContext<RTCPeerConnection|null>(RTCPeerConnectionContext);
     const receivedVideoRef = useRef<HTMLVideoElement|null>(null);
     const localVideoRef = useRef<HTMLVideoElement|null>(null);
     const hangUpButtonRef = useRef<HTMLButtonElement|null>(null);
     const location = useLocation();
-    const state:CustomTypes.landingToMainCallLocationState = location.state;
+    const state:CustomTypes.landingToMainCallLocationStateType = location.state;
     const username:string = state.username;
     const role:string = state.role;
     const targetUsername:string = state.targetUsername;
-    const roomID:string = state.roomID
+    const roomCode:string = state.roomCode
     const Navigate = useNavigate();
     function closeVideoCall(myPeerConnection:RTCPeerConnection) {
         if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
@@ -50,6 +50,7 @@ export function MainCall(){
     }
 
     function handleTrackEvent(event:RTCTrackEvent){
+        console.log(`${username}:[handleTrackEvent]`)
         if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
         if(!hangUpButtonRef.current) throw new Error("hangUpButtonRef is null");
         receivedVideoRef.current.srcObject=event.streams[0];
@@ -57,13 +58,26 @@ export function MainCall(){
     }
 
     function handleIceCandidateEvent(event:RTCPeerConnectionIceEvent){
-        const myPeerConnection = event.target as RTCPeerConnection;
+        console.log(`${username}:[handleIceCandidateEvent]`)
+        if(!myPeerConnection) throw new Error("peerConnection is null");
         if(myPeerConnection.iceConnectionState=="closed" || myPeerConnection.iceConnectionState=="failed"){
             closeVideoCall(myPeerConnection);
+        }
+        if(event.candidate){
+            if(!socket) throw new Error("socket is null");
+            const send_message:CustomTypes.newIceCandidateType={
+                type:"new-ice-candidate",
+                target:targetUsername,
+                candidate:event.candidate
+            }
+            socket.send(JSON.stringify(send_message))
         }
     }
 
     async function handleNegotationNeededEvent(event:Event){
+        // "In WebRTC, adding a track automatically fires the onnegotiationneeded event"
+        console.log(`${username}:[handleNegotiationNeededEvent]`)
+        if(role == "callee") return;
         const myPeerConnection = event.target as RTCPeerConnection;
         try{
             const offer:RTCSessionDescriptionInit = await myPeerConnection.createOffer();
