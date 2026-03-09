@@ -1,2 +1,46 @@
 1. complete ws close,makeuser in ws logic
 2. ws sending from one user to another logic
+
+8 march:
+done above work 
+to do next:
+1. being able to connect again to the same call(basically exchange of candidates whenever a new person joins the call):maybe scale to multiple users 
+2. the video of old user disappears
+
+fix this issue coming sometimes:
+
+======================================
+wsToUsername:
+usernameToWs:
+roomCodeToUsernames:
+12 : [ 'kdmcsk' ]
+usernameToRoomCode:
+kdmcsk : 12
+======================================
+wsToUsername:
+usernameToWs:
+roomCodeToUsernames:
+12 : [ 'kdmcsk' ]
+usernameToRoomCode:
+kdmcsk : 12
+======================================
+http [make-user]
+ws [make-user] from Sdii
+ws [video-offer] from username Sdii to target_usernamekdmcsk
+/home/harsh/DEP/webrtc_basic_implementation/signaling_server/src/signaling_server.ts:69
+                        if(!alt_ws) throw new Error(`${alt_username} not registered in usernameToWs`);
+                                    ^
+
+
+Error: kdmcsk not registered in usernameToWs
+    at WebSocket.<anonymous> (/home/harsh/DEP/webrtc_basic_implementation/signaling_server/src/signaling_server.ts:69:43)
+    at WebSocket.emit (node:events:518:28)
+    at Receiver.receiverOnMessage (/home/harsh/DEP/webrtc_basic_implementation/signaling_server/node_modules/ws/lib/websocket.js:1225:20)
+    at Receiver.emit (node:events:518:28)
+    at Receiver.dataMessage (/home/harsh/DEP/webrtc_basic_implementation/signaling_server/node_modules/ws/lib/receiver.js:596:14)
+    at Receiver.getData (/home/harsh/DEP/webrtc_basic_implementation/signaling_server/node_modules/ws/lib/receiver.js:496:10)
+    at Receiver.startLoop (/home/harsh/DEP/webrtc_basic_implementation/signaling_server/node_modules/ws/lib/receiver.js:167:16)
+    at Receiver._write (/home/harsh/DEP/webrtc_basic_implementation/signaling_server/node_modules/ws/lib/receiver.js:94:10)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+

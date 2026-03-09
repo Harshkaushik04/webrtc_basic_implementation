@@ -9,7 +9,7 @@ export const WebSocketContext=createContext<WebSocket|null>(null);
 export function WebSocketContextProvider({children}:Props){
     const socketRef = useRef<WebSocket|null>(null);
     if(!socketRef.current){
-        socketRef.current = new WebSocket("ws://localhost:3000");
+        socketRef.current = new WebSocket("wss://exclusive-mobiles-destinations-excessive.trycloudflare.com");
     }
     useEffect(()=>{
         return ()=>{
