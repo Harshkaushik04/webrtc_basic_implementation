@@ -75,7 +75,7 @@ export function MainCall(){
         }
     }
 
-    async function handleNegotationNeededEvent(event:Event){
+    async function handleNegotationNeededEvent(){
         console.log(`${username}:[handleNegotiationNeededEvent]`)
         if(role == "callee") return;
         if(!myPeerConnection) throw new Error("peer connection is null");
