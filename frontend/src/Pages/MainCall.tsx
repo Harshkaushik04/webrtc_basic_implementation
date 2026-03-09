@@ -52,12 +52,9 @@ export function MainCall(){
         console.log(`${username}:[handleTrackEvent]`)
         if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
         if(!hangUpButtonRef.current) throw new Error("hangUpButtonRef is null");
-        
-        // FIX: Only set the srcObject if it hasn't been set yet to prevent flickering/restarts
-        if (receivedVideoRef.current.srcObject !== event.streams[0]) {
+        if(receivedVideoRef.current.srcObject !==event.streams[0]){
             receivedVideoRef.current.srcObject = event.streams[0];
         }
-        
         hangUpButtonRef.current.disabled=false;
     }
 
@@ -81,15 +78,11 @@ export function MainCall(){
     async function handleNegotationNeededEvent(event:Event){
         console.log(`${username}:[handleNegotiationNeededEvent]`)
         if(role == "callee") return;
-        
-        const myPeerConnection = event.target as RTCPeerConnection;
-        
-        // FIX: Abort if we are already in the middle of negotiating an offer
+        if(!myPeerConnection) throw new Error("peer connection is null");
         if (myPeerConnection.signalingState !== "stable") {
             console.log("Negotiation already in progress, skipping...");
             return;
         }
-
         try{
             const offer:RTCSessionDescriptionInit = await myPeerConnection.createOffer();
             await myPeerConnection.setLocalDescription(offer);
@@ -124,13 +117,13 @@ export function MainCall(){
             video:true
         }
         try{
-            const localStream:MediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints); 
+            const localStream:MediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
             if(!localVideoRef.current) throw new Error("localVideoRef is null");
             localVideoRef.current.srcObject=localStream;
             const tracks:MediaStreamTrack[] = localStream.getTracks();
             for(const track of tracks){
                 myPeerConnection.addTrack(track,localStream);
-            }  
+            }
         }
         catch(e){
             console.log(`error:${e}`);
@@ -171,15 +164,15 @@ export function MainCall(){
                     audio:true,
                     video:true
                 }
-                let stream:MediaStream= new MediaStream();
+                let stream:MediaStream = new MediaStream();
                 try{
-                    stream= await navigator.mediaDevices.getUserMedia(mediaConstraints);
+                    stream=await navigator.mediaDevices.getUserMedia(mediaConstraints);
                     return stream;
                 }
                 catch(e){
-                    console.log(`error:${e}`)
+                    console.log(`error:${e}`);
                 }
-               return stream;
+                return stream;
             }
             getUserMedia().then((stream:MediaStream)=>{
                 if (!localVideoRef.current) throw new Error("localVideoRef is null");
@@ -193,7 +186,7 @@ export function MainCall(){
     },[])
 
     useEffect(()=>{ //websockets incoming message handler
-        if(!socket) return; 
+        if(!socket) return;
         socket.onmessage=async (msg:MessageEvent<string>)=>{
             const json_message:CustomTypes.frontendType=JSON.parse(msg.data);
             if(json_message.type=="video-offer"){

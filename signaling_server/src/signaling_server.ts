@@ -18,6 +18,12 @@ app.use(express.json());
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
+function printMapStringStringList(mpp:Map<string,string[]>){
+    for(const [key,value] of mpp){
+        console.log(key,":",value);
+    }
+}
+setInterval(() => printMapStringStringList(roomCodeToUsernames), 10000)
 wss.on("connection",function(ws:WebSocket){
     ws.on("message",(msg:WebSocket.RawData)=>{
         const json_message:CustomTypes.frontendType=JSON.parse(msg.toString());
