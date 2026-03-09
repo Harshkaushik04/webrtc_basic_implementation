@@ -7,16 +7,15 @@ interface Props{
 }
 export const WebSocketContext=createContext<WebSocket|null>(null);
 export function WebSocketContextProvider({children}:Props){
-    const socketRef = useRef<WebSocket|null>(null);
-    if(!socketRef.current){
-        socketRef.current = new WebSocket("wss://exclusive-mobiles-destinations-excessive.trycloudflare.com");
-    }
+    const [socket,setSocket]=useState<WebSocket|null>(null);
     useEffect(()=>{
+        const ws = new WebSocket("wss://package-whatever-surrey-resistance.trycloudflare.com");
+        setSocket(ws);
         return ()=>{
-            socketRef.current?.close();
+            ws.close();
         }
-    },[socketRef.current])
-    return <WebSocketContext.Provider value={socketRef.current}>
+    },[])
+    return <WebSocketContext.Provider value={socket}>
         {children}
     </WebSocketContext.Provider>
 }

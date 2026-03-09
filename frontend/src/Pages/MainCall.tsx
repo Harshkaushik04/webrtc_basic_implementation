@@ -20,7 +20,8 @@ export function MainCall(){
     const state:CustomTypes.landingToMainCallLocationStateType = location.state;
     const username:string = state.username;
     const role:string = state.role;
-    const targetUsername:string = state.targetUsername;
+    const pendingICECandidates = useRef<RTCIceCandidateInit[]>([]);
+    let targetUsername:string = state.targetUsername;
     function closeVideoCall() {
         if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
         if(!localVideoRef.current) throw new Error("localVideoRef is null");
@@ -111,6 +112,7 @@ export function MainCall(){
     }
 
     async function handleVideoOffer(json_message:CustomTypes.videoOfferType){
+        targetUsername=json_message.username;
         const myPeerConnection:RTCPeerConnection = createPeerConnection();
         const desc:RTCSessionDescription = new RTCSessionDescription(json_message.sdp);
         await myPeerConnection.setRemoteDescription(desc);
@@ -146,12 +148,20 @@ export function MainCall(){
         if(!myPeerConnection) throw new Error("peerConnection is null");
         const desc:RTCSessionDescription = new RTCSessionDescription(json_message.sdp);
         await myPeerConnection.setRemoteDescription(desc);
+        for(const candidate of pendingICECandidates.current){
+            await myPeerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error);
+        }
+        pendingICECandidates.current=[];
     }
 
     async function handleNewIceCandidate(json_message:CustomTypes.newIceCandidateType){
         if(!myPeerConnection) throw new Error("peerConnection is null");
-        const candidate:RTCIceCandidate = new RTCIceCandidate(json_message.candidate);
+        if(!myPeerConnection.remoteDescription){
+            pendingICECandidates.current.push(json_message.candidate);
+            return; //will handle these after setting remote description
+        }
         try{
+            const candidate:RTCIceCandidate = new RTCIceCandidate(json_message.candidate);
             await myPeerConnection.addIceCandidate(candidate);
         }
         catch(e){

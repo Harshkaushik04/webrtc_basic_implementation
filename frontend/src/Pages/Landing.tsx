@@ -18,7 +18,7 @@ export function Landing(){
         buttonRef.current.disabled=true;
         if(!usernameRef.current) throw new Error("usernameref.current is null");
         if(!RoomCodeRef.current) throw new Error("RoomCodeRef.current is null");
-        const res = await axios.post("https://exclusive-mobiles-destinations-excessive.trycloudflare.com/make-user",{
+        const res = await axios.post("https://package-whatever-surrey-resistance.trycloudflare.com/make-user",{
             type:"make-user",
             username:usernameRef.current?.value,
             roomCode:RoomCodeRef.current?.value
@@ -28,7 +28,17 @@ export function Landing(){
             username:usernameRef.current.value
         }
         if(!ws) console.log("ws is null while clicking button");
-        ws?.send(JSON.stringify(wsMakeUserReq));
+        if(ws?.readyState==ws?.OPEN){
+            ws?.send(JSON.stringify(wsMakeUserReq));
+        }
+        else if(ws?.readyState==ws?.CONNECTING){
+            addEventListener('open',()=>{
+                ws?.send(JSON.stringify(wsMakeUserReq));
+            },{once:true})
+        }
+        else{
+            console.error("WebSocket is closed. Cannot send user registration.");
+        }
         const resData:CustomTypes.makeUserResponseType = res.data;
         console.log(resData.success)
         if(resData.success=="yes"){
