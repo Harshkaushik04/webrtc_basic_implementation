@@ -1,7 +1,7 @@
 import { WebSocketContext } from "../context/WebSocketContextProvider";
 import { RTCPeerConnectionContext } from "../context/RTCPeerConnectionContextProvider";
 import { useContext, useEffect,useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation} from "react-router-dom";
 import * as CustomTypes from "../types.js"
 
 /*
@@ -76,7 +76,7 @@ export function MainCall(){
         }
     }
 
-    async function handleNegotationNeededEvent(){
+    async function handleNegotationNeededEvent(_event:Event){
         console.log(`${username}:[handleNegotiationNeededEvent]`)
         if(role == "callee") return;
         if(!myPeerConnection) throw new Error("peer connection is null");
