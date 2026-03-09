@@ -28,6 +28,7 @@ export const videoAnswerSchema=z.object({
 
 export const newIceCandidateSchema=z.object({
     type:z.literal("new-ice-candidate"),
+    username:z.string(),
     target:z.string(),
     candidate:RTCIceCandidateSchema
 })

@@ -21,8 +21,7 @@ export function MainCall(){
     const username:string = state.username;
     const role:string = state.role;
     const targetUsername:string = state.targetUsername;
-    const Navigate = useNavigate();
-    function closeVideoCall(myPeerConnection:RTCPeerConnection) {
+    function closeVideoCall() {
         if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
         if(!localVideoRef.current) throw new Error("localVideoRef is null");
         const receivedStream = receivedVideoRef.current.srcObject;
@@ -45,7 +44,8 @@ export function MainCall(){
         }
         if(!hangUpButtonRef.current) throw new Error("hangUpButtonRef is null")
         hangUpButtonRef.current.disabled = true;
-        Navigate("/");
+        if(socket) socket.close();
+        window.location.href="/";
     }
 
     function handleTrackEvent(event:RTCTrackEvent){
@@ -62,12 +62,13 @@ export function MainCall(){
         console.log(`${username}:[handleIceCandidateEvent]`)
         if(!myPeerConnection) throw new Error("peerConnection is null");
         if(myPeerConnection.iceConnectionState=="closed" || myPeerConnection.iceConnectionState=="failed"){
-            closeVideoCall(myPeerConnection);
+            closeVideoCall();
         }
         if(event.candidate){
             if(!socket) throw new Error("socket is null");
             const send_message:CustomTypes.newIceCandidateType={
                 type:"new-ice-candidate",
+                username:username,
                 target:targetUsername,
                 candidate:event.candidate
             }
@@ -207,6 +208,6 @@ export function MainCall(){
     return <>
     <video className="received_video" ref={receivedVideoRef} autoPlay playsInline></video>
     <video className="local_video" ref={localVideoRef} autoPlay muted playsInline></video>
-    <button className="hang-up-button" ref={hangUpButtonRef} disabled={true}>Hang Up</button>
+    <button className="hang-up-button" ref={hangUpButtonRef} onClick={closeVideoCall}>Hang Up</button>
     </>
 }

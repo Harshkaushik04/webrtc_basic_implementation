@@ -23,17 +23,38 @@ function printMapStringStringList(mpp:Map<string,string[]>){
         console.log(key,":",value);
     }
 }
-setInterval(() => printMapStringStringList(roomCodeToUsernames), 10000)
+
+function completeDebugging(){
+    console.log("wsToUsername:")
+    for(const [key,value] of wsToUsername){
+        console.log("ws:",value);
+    }
+    console.log("usernameToWs:")
+    for(const [key,value] of usernameToWs){
+        console.log(key,":ws");
+    }
+    console.log("roomCodeToUsernames:")
+    for(const [key,value] of roomCodeToUsernames){
+        console.log(key,":",value);
+    }
+    console.log("usernameToRoomCode:")
+    for(const [key,value] of usernameToRoomCode){
+        console.log(key,":",value);
+    }
+    console.log("======================================");
+}   
+
+setInterval(() => completeDebugging(), 5000)
 wss.on("connection",function(ws:WebSocket){
     ws.on("message",(msg:WebSocket.RawData)=>{
         const json_message:CustomTypes.frontendType=JSON.parse(msg.toString());
         if(json_message.type=="make-user"){
-            console.log("ws [make-user]");
+            console.log(`ws [make-user] from ${json_message.username}`);
             wsToUsername.set(ws,json_message.username);
             usernameToWs.set(json_message.username,ws);
         }
         else if(json_message.type=="new-ice-candidate" || json_message.type=="video-answer" || json_message.type=="video-offer"){
-            console.log(`ws [${json_message.type}]`)
+            console.log(`ws [${json_message.type}] from username ${json_message.username} to target_username ${json_message.target}`)
             if(!wsToUsername.has(ws)) console.log("this ws doesnt isnt registered in wsToUsername");
             else{
                 //@ts-ignore
