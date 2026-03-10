@@ -253,20 +253,22 @@ export function MainCall(){
                 catch(e){
                     console.log(`error:${e}`);
                 }
+                if (!localVideoRef.current) throw new Error("localVideoRef is null");
+                localVideoRef.current.srcObject = stream; 
                 return stream;
             }
-            for(const targetUsername of targetUsernames){
-                const myPeerConnection:RTCPeerConnection=createPeerConnection(targetUsername);
-                myPeerConnections.current.set(targetUsername,myPeerConnection);
-                getUserMedia().then((stream:MediaStream)=>{
-                    if (!localVideoRef.current) throw new Error("localVideoRef is null");
-                    localVideoRef.current.srcObject = stream; 
+            getUserMedia().then((stream:MediaStream)=>{
+                for(const targetUsername of targetUsernames){
+                    const myPeerConnection:RTCPeerConnection=createPeerConnection(targetUsername);
+                    myPeerConnections.current.set(targetUsername,myPeerConnection);
                     const tracks:MediaStreamTrack[] = stream.getTracks();
                     for(const track of tracks){
                         myPeerConnection.addTrack(track,stream);
                     }
-                })
-            }
+                }
+            }).catch((error) => {
+                console.error("Failed to get camera access:", error);
+            });
         }
     },[])
 
@@ -289,19 +291,37 @@ export function MainCall(){
         }
 
     },[socket])
-    return <>
-    {Array.from(remoteStreams.entries()).map(([remoteUsername, stream]) => (
-        <video 
-            key={remoteUsername}
-            autoPlay 
-            playsInline
-            ref={(videoElement) => {
-                // Instantly inject the stream the moment the tag hits the DOM
-                if (videoElement) videoElement.srcObject = stream;
-            }}
-        />
-    ))}
+return <>
+    {Array.from(remoteStreams.entries()).map(([remoteUsername, stream]) => {
+        // 1. If this user doesn't have a Ref object yet, create one and store it in your Map
+        if (!receivedVideoRefs.current.has(remoteUsername)) {
+            receivedVideoRefs.current.set(remoteUsername, { current: null });
+        }
+        
+        // 2. Retrieve the Ref object for this specific user
+        const videoRef = receivedVideoRefs.current.get(remoteUsername);
+
+        return (
+            <video 
+                key={remoteUsername}
+                autoPlay 
+                playsInline
+                ref={(el) => {
+                    // 3. Save the HTML element into your Map so closeVideoCall() can use it later
+                    if (videoRef) {
+                        videoRef.current = el;
+                    }
+                    
+                    // 4. Attach the actual video data to the element so it shows on screen
+                    if (el && el.srcObject !== stream) {
+                        el.srcObject = stream;
+                    }
+                }}
+            />
+        );
+    })}
+    
     <video className="local_video" ref={localVideoRef} autoPlay muted playsInline></video>
     <button className="hang-up-button" ref={hangUpButtonRef} onClick={closeVideoCall}>Hang Up</button>
-    </>
+</>
 }
