@@ -22,7 +22,7 @@ export function Landing(){
         buttonRef.current.disabled=true;
         if(!usernameRef.current) throw new Error("usernameref.current is null");
         if(!RoomCodeRef.current) throw new Error("RoomCodeRef.current is null");
-        const res = await axios.post("https://selections-were-display-attended.trycloudflare.com/make-user",{
+        const res = await axios.post("https://webrtc-basic-implementation.onrender.com/make-user",{
             type:"make-user",
             username:usernameRef.current?.value,
             roomCode:RoomCodeRef.current?.value

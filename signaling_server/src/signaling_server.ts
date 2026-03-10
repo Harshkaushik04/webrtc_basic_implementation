@@ -1,10 +1,9 @@
+import { createServer } from "http"; 
 import WebSocket,{WebSocketServer} from "ws";
 import express from "express"
 import cors from "cors"
 import * as CustomSchemas from "./schemas.js"
 import * as CustomTypes from "./types.js"
-import {createServer} from "http"
-import { json } from "zod";
 
 let wsToUsername=new Map<WebSocket,string>();
 let usernameToWs=new Map<string,WebSocket>();
@@ -17,7 +16,7 @@ app.use(cors({
 }));
 app.use(express.json());
 const server = createServer(app);
-const wss = new WebSocketServer({server});
+const wss = new WebSocketServer({ server });
 
 function printMapStringStringList(mpp:Map<string,string[]>){
     for(const [key,value] of mpp){
@@ -201,6 +200,7 @@ app.post("/make-user",async(req,res)=>{
     }
 })
 
-server.listen(3000,()=>{
-    console.log("http and ws server are running at port 3000\n")
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
 });
