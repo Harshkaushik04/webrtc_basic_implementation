@@ -28,7 +28,19 @@ export function Landing(){
             username:usernameRef.current.value
         }
         if(!ws) console.log("ws is null while clicking button");
-        ws?.send(JSON.stringify(wsMakeUserReq));
+        if(ws?.readyState==ws?.OPEN){
+            ws?.send(JSON.stringify(wsMakeUserReq));
+            console.log(`[ws]make-user : ws is in open state`)
+        }
+        else if(ws?.readyState==ws?.CONNECTING){
+            ws?.addEventListener('open',()=>{
+                ws?.send(JSON.stringify(wsMakeUserReq));
+                console.log(`[ws]make-user : ws is in connecting state`)
+            },{once:true})
+        }
+        else{
+            console.error("WebSocket is closed. Cannot send user registration.");
+        }
         const resData:CustomTypes.makeUserResponseType = res.data;
         console.log(resData.success)
         if(resData.success=="yes"){

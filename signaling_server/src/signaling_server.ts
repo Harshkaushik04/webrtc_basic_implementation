@@ -66,7 +66,10 @@ wss.on("connection",function(ws:WebSocket){
                 for(const alt_username of usernames){
                     if(alt_username!=username){
                         const alt_ws:WebSocket|undefined=usernameToWs.get(alt_username);
-                        if(!alt_ws) throw new Error(`${alt_username} not registered in usernameToWs`);
+                        if(!alt_ws){
+                            console.log(`${alt_username} isnt registered in usernameToWs so skipping it(not sending it)`)
+                            continue;
+                        }
                         alt_ws.send(JSON.stringify(json_message));
                     }
                 }

@@ -1,4 +1,4 @@
-import { createContext, useEffect, useRef } from "react";
+import { createContext, useEffect, useState } from "react";
 import type {ReactNode} from "react";
 
 interface Props{
@@ -6,16 +6,15 @@ interface Props{
 }
 export const WebSocketContext=createContext<WebSocket|null>(null);
 export function WebSocketContextProvider({children}:Props){
-    const socketRef = useRef<WebSocket|null>(null);
-    if(!socketRef.current){
-        socketRef.current = new WebSocket("wss://webrtc-basic-implementation.onrender.com");
-    }
+    const [socket,setSocket]=useState<WebSocket|null>(null);
     useEffect(()=>{
+        const ws = new WebSocket("wss://webrtc-basic-implementation.onrender.com");
+        setSocket(ws);
         return ()=>{
-            socketRef.current?.close();
+            ws.close();
         }
-    },[socketRef.current])
-    return <WebSocketContext.Provider value={socketRef.current}>
+    },[])
+    return <WebSocketContext.Provider value={socket}>
         {children}
     </WebSocketContext.Provider>
 }
