@@ -73,7 +73,7 @@ export function Landing(){
         }
     }
     function reload(){
-        for(const [target_username,myPeerConnection] of myPeerConnections.current){
+        for(const [_target_username,myPeerConnection] of myPeerConnections.current){
             myPeerConnection.close();
             myPeerConnections.current.clear();
         }
