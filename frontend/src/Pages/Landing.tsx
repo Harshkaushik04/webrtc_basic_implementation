@@ -15,7 +15,6 @@ export function Landing(){
     const RTCContext = useContext<RTCPeerConnectionContextType|null>(RTCPeerConnectionContext);
     if(!RTCContext) throw new Error("RTCContext is null");
     let myPeerConnections:React.RefObject<Map<string,RTCPeerConnection>> = RTCContext.myPeerConnections;
-    let removeRemoteStream:(username:string)=>void = RTCContext.removeRemoteStream;
     const Navigate = useNavigate();
     async function clickSubmitButton(){
         if(!buttonRef.current) throw new Error("buttonref.current is null");
@@ -77,7 +76,6 @@ export function Landing(){
         for(const [target_username,myPeerConnection] of myPeerConnections.current){
             myPeerConnection.close();
             myPeerConnections.current.clear();
-            removeRemoteStream(target_username);
         }
         if(ws) ws.close();
         window.location.href="/"

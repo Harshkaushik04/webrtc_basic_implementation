@@ -16,8 +16,6 @@ export function MainCall(){
     const RTCContext=useContext<RTCPeerConnectionContextType|null>(RTCPeerConnectionContext);
     if(!RTCContext) throw new Error("RTCContext is null");
     const myPeerConnections:React.RefObject<Map<string,RTCPeerConnection>> = RTCContext.myPeerConnections;
-    const remoteStreams:Map<string,MediaStream> = RTCContext.remoteStreams;
-    const addRemoteStream:(username:string,stream:MediaStream)=>void = RTCContext.addRemoteStream;
     const receivedVideoRefs = useRef<Map<string,React.RefObject<HTMLVideoElement|null>>>(new Map<string,React.RefObject<HTMLVideoElement|null>>());
     const localVideoRef = useRef<HTMLVideoElement|null>(null);
     const hangUpButtonRef = useRef<HTMLButtonElement|null>(null);
@@ -75,7 +73,6 @@ export function MainCall(){
         }
         if(receivedVideoRef.current.srcObject !==event.streams[0]){
             receivedVideoRef.current.srcObject = event.streams[0];
-            addRemoteStream(targetUsername,event.streams[0]);
         }
         hangUpButtonRef.current.disabled=false;
     }
