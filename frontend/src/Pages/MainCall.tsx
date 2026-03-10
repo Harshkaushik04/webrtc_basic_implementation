@@ -219,6 +219,10 @@ export function MainCall(){
 
     async function handleNewIceCandidate(json_message:CustomTypes.incomingNewIceCandidateType){
         const targetUsername:string = json_message.username;
+        if(!receivedVideoRefs.current.has(targetUsername)){
+            const videoRef = React.createRef<HTMLVideoElement|null>();
+            receivedVideoRefs.current.set(targetUsername,videoRef)
+        }
         const myPeerConnection:RTCPeerConnection|undefined = myPeerConnections.current.get(targetUsername);
         if(!myPeerConnection){
             console.log(`myPeerConnection is null for username:${username} and targetUsername:${targetUsername}`)
@@ -263,6 +267,10 @@ export function MainCall(){
             for(const targetUsername of targetUsernames){
                 const myPeerConnection:RTCPeerConnection=createPeerConnection(targetUsername);
                 myPeerConnections.current.set(targetUsername,myPeerConnection);
+                if(!receivedVideoRefs.current.has(targetUsername)){
+                    const videoRef = React.createRef<HTMLVideoElement|null>();
+                    receivedVideoRefs.current.set(targetUsername,videoRef)
+                }
                 getUserMedia().then((stream:MediaStream)=>{
                     if (!localVideoRef.current) throw new Error("localVideoRef is null");
                     localVideoRef.current.srcObject = stream; 
