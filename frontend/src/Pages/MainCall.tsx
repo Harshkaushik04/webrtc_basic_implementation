@@ -4,6 +4,7 @@ import type { RTCPeerConnectionContextType } from "../context/RTCPeerConnectionC
 import { useContext, useEffect,useRef } from "react";
 import { useLocation } from "react-router-dom";
 import * as CustomTypes from "../types.js"
+import React from "react";
 /*
 useState() vs useRef() for storing RTCPeerConnection:
 since RTCPeerConnection chnages frequently, but we dont want react component to rerender everytime it changes
@@ -156,6 +157,10 @@ export function MainCall(){
         let targetUsername=json_message.username;
         const myPeerConnection:RTCPeerConnection = createPeerConnection(targetUsername);
         myPeerConnections.current.set(targetUsername,myPeerConnection);
+        if(!receivedVideoRefs.current.has(targetUsername)){
+            const videoRef = React.createRef<HTMLVideoElement|null>();
+            receivedVideoRefs.current.set(targetUsername,videoRef)
+        }
         const desc:RTCSessionDescription = new RTCSessionDescription(json_message.sdp);
         await myPeerConnection.setRemoteDescription(desc);
         const candidates:RTCIceCandidateInit[]|undefined = pendingICECandidates.current.get(targetUsername);
