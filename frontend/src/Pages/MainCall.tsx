@@ -270,6 +270,7 @@ export function MainCall(){
                 myPeerConnection.close();
             }
         }
+        forceRender();
     }
     useEffect(()=>{ //landing to maincall page rtc caller/callee split
         if(role == "caller"){
