@@ -276,6 +276,7 @@ export function MainCall(){
                             receivedVideoRef.current=null;
                         }
                     }
+                    receivedStreams.delete(targetUsername);
                 }
                 myPeerConnection.close();
             }
