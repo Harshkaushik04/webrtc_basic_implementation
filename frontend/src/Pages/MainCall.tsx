@@ -25,6 +25,7 @@ export function MainCall(){
     const role:string = state.role;
     const targetUsernames:string[] = state.targetUsernames;
     const pendingICECandidates = useRef<Map<string,RTCIceCandidateInit[]>>(new Map<string,RTCIceCandidateInit[]>());
+    const [, forceRender] = React.useReducer(x => x + 1, 0);
     function closeVideoCall() {
         if(!receivedVideoRefs.current) throw new Error("receivedVideoRefs is null");
         if(!localVideoRef.current) throw new Error("localVideoRef is null");
@@ -157,6 +158,7 @@ export function MainCall(){
         if(!receivedVideoRefs.current.has(targetUsername)){
             const videoRef = React.createRef<HTMLVideoElement|null>();
             receivedVideoRefs.current.set(targetUsername,videoRef)
+            forceRender();
         }
         const desc:RTCSessionDescription = new RTCSessionDescription(json_message.sdp);
         await myPeerConnection.setRemoteDescription(desc);
@@ -219,6 +221,7 @@ export function MainCall(){
         if(!receivedVideoRefs.current.has(targetUsername)){
             const videoRef = React.createRef<HTMLVideoElement|null>();
             receivedVideoRefs.current.set(targetUsername,videoRef)
+            forceRender();
         }
         const myPeerConnection:RTCPeerConnection|undefined = myPeerConnections.current.get(targetUsername);
         if(!myPeerConnection){
@@ -266,7 +269,8 @@ export function MainCall(){
                 myPeerConnections.current.set(targetUsername,myPeerConnection);
                 if(!receivedVideoRefs.current.has(targetUsername)){
                     const videoRef = React.createRef<HTMLVideoElement|null>();
-                    receivedVideoRefs.current.set(targetUsername,videoRef)
+                    receivedVideoRefs.current.set(targetUsername,videoRef);
+                    forceRender();
                 }
                 getUserMedia().then((stream:MediaStream)=>{
                     if (!localVideoRef.current) throw new Error("localVideoRef is null");
