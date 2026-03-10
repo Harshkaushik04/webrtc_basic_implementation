@@ -7,6 +7,7 @@ export type videoAnswerType = z.infer<typeof CustomSchemas.videoAnswerSchema>
 export type outgoingNewIceCandidateType = z.infer<typeof CustomSchemas.outgoingNewIceCandidateSchema>
 export type incomingNewIceCandidateType = z.infer<typeof CustomSchemas.incomingNewIceCandidateSchema>
 export type wsMakeUserRequestType = z.infer<typeof CustomSchemas.wsMakeUserRequestSchema>
+export type disconnectVideoCallRequestType = z.infer<typeof CustomSchemas.disconnectVideoCallRequestSchema>
 export type frontendType = z.infer<typeof CustomSchemas.frontendSchema>
 
 export type makeUserRequestType = z.infer<typeof CustomSchemas.makeUserRequestSchema>

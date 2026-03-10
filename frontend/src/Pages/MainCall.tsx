@@ -247,6 +247,30 @@ export function MainCall(){
             console.log(e);
         }
     }
+    async function handleDisconnectUser(json_message:CustomTypes.disconnectVideoCallRequestType){
+        const targetUsername:string = json_message.username;
+        const receivedStreams:Map<string,React.RefObject<HTMLVideoElement|null>> = receivedVideoRefs.current;
+        for(const [altUsername,myPeerConnection] of myPeerConnections.current){
+            if (targetUsername==altUsername && myPeerConnection) {
+                myPeerConnection.ontrack = null;
+                myPeerConnection.onicecandidate = null;
+                myPeerConnection.onnegotiationneeded = null;
+                if(receivedStreams.has(targetUsername)){
+                    if(!receivedStreams.get(targetUsername)){
+                        console.log(`${targetUsername} stream is null in receivedStreams of ${username}`);
+                        receivedStreams.delete(targetUsername);
+                        continue;
+                    }
+                    //@ts-ignore
+                    const receivedStream:MediaStream = receivedStreams.get(targetUsername).srcObject;
+                    if (receivedStream) { // .getTrack() only works on MediaStream
+                        receivedStream.getTracks().forEach((track) => track.stop());
+                    }
+                }
+                myPeerConnection.close();
+            }
+        }
+    }
     useEffect(()=>{ //landing to maincall page rtc caller/callee split
         if(role == "caller"){
             async function getUserMedia(){
@@ -296,6 +320,9 @@ export function MainCall(){
             }
             else if(json_message.type=="new-ice-candidate-incoming"){
                 await handleNewIceCandidate(json_message);
+            }
+            else if(json_message.type=="disconnect-user"){
+                await handleDisconnectUser(json_message);
             }
         }
         return ()=>{

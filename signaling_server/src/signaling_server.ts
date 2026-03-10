@@ -132,6 +132,18 @@ wss.on("connection",function(ws:WebSocket){
                     if(usernames){
                         const index:number=usernames.indexOf(username);
                         if(index>-1) usernames.splice(index,1);
+                        for(const alt_username of usernames){
+                            if(alt_username!=username){
+                                const alt_ws:WebSocket|undefined = usernameToWs.get(alt_username);
+                                if(alt_ws){
+                                    const json_message:CustomTypes.disconnectVideoCallRequestType = {
+                                        type:"disconnect-user",
+                                        username:username
+                                    }
+                                    alt_ws.send(JSON.stringify(json_message));
+                                }
+                            }
+                        }
                     }
                 }
             }

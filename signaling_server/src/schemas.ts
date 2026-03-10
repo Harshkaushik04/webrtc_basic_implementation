@@ -50,7 +50,12 @@ export const wsMakeUserRequestSchema=z.object({ //not sending roomCode because t
     username:z.string()
 })
 
-export const frontendSchema=z.union([incomingVideoOfferSchema,outgoingVideoOfferSchema,videoAnswerSchema,outgoingNewIceCandidateSchema,incomingNewIceCandidateSchema,wsMakeUserRequestSchema])
+export const disconnectVideoCallRequestSchema=z.object({
+    type:z.literal("disconnect-user"),
+    username:z.string()
+})
+
+export const frontendSchema=z.union([incomingVideoOfferSchema,outgoingVideoOfferSchema,videoAnswerSchema,outgoingNewIceCandidateSchema,incomingNewIceCandidateSchema,wsMakeUserRequestSchema,disconnectVideoCallRequestSchema])
 
 export const makeUserRequestSchema=z.object({
     type:z.literal("make-user"),
