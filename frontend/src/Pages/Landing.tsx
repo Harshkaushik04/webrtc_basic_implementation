@@ -32,7 +32,7 @@ export function Landing(){
             ws?.send(JSON.stringify(wsMakeUserReq));
         }
         else if(ws?.readyState==ws?.CONNECTING){
-            addEventListener('open',()=>{
+            ws?.addEventListener('open',()=>{
                 ws?.send(JSON.stringify(wsMakeUserReq));
             },{once:true})
         }

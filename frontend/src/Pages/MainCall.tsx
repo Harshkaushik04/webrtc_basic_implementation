@@ -116,6 +116,10 @@ export function MainCall(){
         const myPeerConnection:RTCPeerConnection = createPeerConnection();
         const desc:RTCSessionDescription = new RTCSessionDescription(json_message.sdp);
         await myPeerConnection.setRemoteDescription(desc);
+        for(const candidate of pendingICECandidates.current){
+            myPeerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+        pendingICECandidates.current=[];
         const mediaConstraints = {
             audio:true,
             video:true
