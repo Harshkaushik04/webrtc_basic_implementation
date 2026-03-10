@@ -303,17 +303,14 @@ export function MainCall(){
 
     },[socket])
     return <>
-    {Array.from(remoteStreams.entries()).map(([remoteUsername, stream]) => (
-        <video 
-            key={remoteUsername}
-            autoPlay 
-            playsInline
-            ref={(videoElement) => {
-                // Instantly inject the stream the moment the tag hits the DOM
-                if (videoElement) videoElement.srcObject = stream;
-            }}
-        />
-    ))}
+    {[...receivedVideoRefs.current.entries()].map(([username, ref]) => {
+    return <video
+      key={username}
+      ref={ref}
+      autoPlay
+      playsInline
+    />}
+    )}
     <video className="local_video" ref={localVideoRef} autoPlay muted playsInline></video>
     <button className="hang-up-button" ref={hangUpButtonRef} onClick={closeVideoCall}>Hang Up</button>
     </>
