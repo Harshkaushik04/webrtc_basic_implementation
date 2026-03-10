@@ -30,10 +30,12 @@ export function Landing(){
         if(!ws) console.log("ws is null while clicking button");
         if(ws?.readyState==ws?.OPEN){
             ws?.send(JSON.stringify(wsMakeUserReq));
+            console.log(`[ws]make-user : ws is in open state`)
         }
         else if(ws?.readyState==ws?.CONNECTING){
             ws?.addEventListener('open',()=>{
                 ws?.send(JSON.stringify(wsMakeUserReq));
+                console.log(`[ws]make-user : ws is in connecting state`)
             },{once:true})
         }
         else{
