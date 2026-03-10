@@ -4,6 +4,7 @@ import * as CustomTypes from "./../types.js"
 import axios from "axios";
 import { WebSocketContext } from "../context/WebSocketContextProvider.js";
 import { RTCPeerConnectionContext } from "../context/RTCPeerConnectionContextProvider.js";
+import type{RTCPeerConnectionContextType} from "../context/RTCPeerConnectionContextProvider.js"
 
 export function Landing(){
     const usernameRef = useRef<HTMLInputElement|null>(null);
@@ -11,14 +12,17 @@ export function Landing(){
     const buttonRef = useRef<HTMLButtonElement|null>(null);
     const timerRef = useRef<number|null>(null);
     const ws = useContext<WebSocket|null>(WebSocketContext);
-    const myPeerConnection = useContext<RTCPeerConnection|null>(RTCPeerConnectionContext);
+    const RTCContext = useContext<RTCPeerConnectionContextType|null>(RTCPeerConnectionContext);
+    if(!RTCContext) throw new Error("RTCContext is null");
+    let myPeerConnections:React.RefObject<Map<string,RTCPeerConnection>> = RTCContext.myPeerConnections;
+    let removeRemoteStream:(username:string)=>void = RTCContext.removeRemoteStream;
     const Navigate = useNavigate();
     async function clickSubmitButton(){
         if(!buttonRef.current) throw new Error("buttonref.current is null");
         buttonRef.current.disabled=true;
         if(!usernameRef.current) throw new Error("usernameref.current is null");
         if(!RoomCodeRef.current) throw new Error("RoomCodeRef.current is null");
-        const res = await axios.post("https://package-whatever-surrey-resistance.trycloudflare.com/make-user",{
+        const res = await axios.post("https://selections-were-display-attended.trycloudflare.com/make-user",{
             type:"make-user",
             username:usernameRef.current?.value,
             roomCode:RoomCodeRef.current?.value
@@ -52,7 +56,7 @@ export function Landing(){
                     username:usernameRef.current?.value,
                     roomID:RoomCodeRef.current?.value,
                     role:resData.role,
-                    targetUsername:resData.targetUsername
+                    targetUsernames:resData.targetUsernames
                 }
             })
         }
@@ -70,7 +74,11 @@ export function Landing(){
         }
     }
     function reload(){
-        if(myPeerConnection) myPeerConnection.close();
+        for(const [target_username,myPeerConnection] of myPeerConnections.current){
+            myPeerConnection.close();
+            myPeerConnections.current.clear();
+            removeRemoteStream(target_username);
+        }
         if(ws) ws.close();
         window.location.href="/"
     }

@@ -1,26 +1,44 @@
 import { createContext } from "react"
 import type { ReactNode } from "react";
-import { useRef } from "react";
+import { useRef,useState } from "react";
 
 interface Props{
     children:ReactNode
 }
 
-export const RTCPeerConnectionContext = createContext<RTCPeerConnection|null>(null); 
+export type RTCPeerConnectionContextType={
+    myPeerConnections:React.RefObject<Map<string,RTCPeerConnection>>;
+    remoteStreams:Map<string,MediaStream>,
+    addRemoteStream:(username:string,stream:MediaStream)=>void,
+    removeRemoteStream:(username:string)=>void
+}
+
+export const RTCPeerConnectionContext = createContext<RTCPeerConnectionContextType|null>(null); 
 
 export function RTCPeerConnectionContextProvider({children}:Props){
-    const peerConnectionRef = useRef<RTCPeerConnection|null>(null);
-    // could have used useEffect() here tho this is preffered since we want peerConnection object to be formed before ui renders and not after
-    if(!peerConnectionRef.current){
-        peerConnectionRef.current = new RTCPeerConnection({
-            iceServers:[
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
-            ]
+    const myPeerConnections = useRef<Map<string,RTCPeerConnection>>(new Map<string,RTCPeerConnection>()); // target_username, my own RTCPeerConnection object with that user
+    const [remoteStreams,setRemoteStreams] = useState<Map<string,MediaStream>>(new Map<string,MediaStream>());
+    function addRemoteStream(username:string,stream:MediaStream){
+        setRemoteStreams((prevRemoteStreams:Map<string,MediaStream>)=>{
+            const prev:Map<string,MediaStream> = new Map<string,MediaStream>(prevRemoteStreams);
+            prev.set(username,stream);
+            return prev;
         })
     }
-    return <RTCPeerConnectionContext.Provider value={peerConnectionRef.current}>
+    function removeRemoteStream(username:string){
+        setRemoteStreams((prevRemoteStreams:Map<string,MediaStream>)=>{
+            const prev:Map<string,MediaStream> = new Map<string,MediaStream>(prevRemoteStreams);
+            if(prev.has(username)) prev.delete(username);
+            return prev;
+        })
+    }
+    // could have used useEffect() here tho this is preffered since we want peerConnection object to be formed before ui renders and not after
+    return <RTCPeerConnectionContext.Provider value={{
+        myPeerConnections:myPeerConnections,
+        remoteStreams:remoteStreams,
+        addRemoteStream:addRemoteStream,
+        removeRemoteStream:removeRemoteStream
+    }}>
         {children}
     </RTCPeerConnectionContext.Provider>
 }

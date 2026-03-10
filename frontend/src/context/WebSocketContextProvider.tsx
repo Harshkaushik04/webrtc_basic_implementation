@@ -9,7 +9,7 @@ export const WebSocketContext=createContext<WebSocket|null>(null);
 export function WebSocketContextProvider({children}:Props){
     const [socket,setSocket]=useState<WebSocket|null>(null);
     useEffect(()=>{
-        const ws = new WebSocket("wss://package-whatever-surrey-resistance.trycloudflare.com");
+        const ws = new WebSocket("wss://selections-were-display-attended.trycloudflare.com");
         setSocket(ws);
         return ()=>{
             ws.close();
