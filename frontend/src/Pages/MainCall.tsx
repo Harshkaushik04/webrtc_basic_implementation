@@ -261,10 +261,20 @@ export function MainCall(){
                         receivedStreams.delete(targetUsername);
                         continue;
                     }
-                    //@ts-ignore
-                    const receivedStream:MediaStream = receivedStreams.get(targetUsername).srcObject;
-                    if (receivedStream) { // .getTrack() only works on MediaStream
-                        receivedStream.getTracks().forEach((track) => track.stop());
+                    const receivedVideoRef:React.RefObject<HTMLVideoElement|null>|undefined = receivedStreams.get(targetUsername);
+                    if(receivedVideoRef){
+                        const receivedStreamHTML:HTMLVideoElement|null = receivedVideoRef.current;
+                        if(!receivedStreamHTML){
+                            console.log(`receivedVideoRef.current is null for ${targetUsername}`);
+                            continue;
+                        }
+                        else{
+                            const receivedStream = receivedStreamHTML.srcObject as MediaStream;
+                            if (receivedStream) { // .getTrack() only works on MediaStream
+                                receivedStream.getTracks().forEach((track) => track.stop());
+                            }
+                            receivedVideoRef.current=null;
+                        }
                     }
                 }
                 myPeerConnection.close();
