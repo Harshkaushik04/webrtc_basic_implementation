@@ -101,7 +101,7 @@ export function MainCall(){
         }
     }
 
-    async function handleNegotationNeededEvent(event:Event,targetUsername:string){
+    async function handleNegotationNeededEvent(_event:Event,targetUsername:string){
         // "In WebRTC, adding a track automatically fires the onnegotiationneeded event"
         console.log(`${username}:[handleNegotiationNeededEvent] targetUsername:${targetUsername}`)
         if(role == "callee") return;
