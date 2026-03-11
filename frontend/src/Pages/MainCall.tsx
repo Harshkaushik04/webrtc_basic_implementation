@@ -342,16 +342,75 @@ export function MainCall(){
         }
 
     },[socket])
-    return <>
-    {[...receivedVideoRefs.current.entries()].map(([username, ref]) => {
-    return <video
-      key={username}
-      ref={ref}
-      autoPlay
-      playsInline
-    />}
-    )}
-    <video className="local_video" ref={localVideoRef} autoPlay muted playsInline></video>
-    <button className="hang-up-button" ref={hangUpButtonRef} onClick={closeVideoCall}>Hang Up</button>
-    </>
+
+    return (
+        <div className="main-call">
+            <header className="main-call__header">
+                <div className="main-call__title">
+                    <span className="main-call__badge">Live Call</span>
+                    <h1>{username}</h1>
+                    <p className="main-call__subtitle">
+                        Role: <span className="main-call__role">{role}</span>
+                    </p>
+                </div>
+                <button
+                    className="main-call__hangup"
+                    ref={hangUpButtonRef}
+                    onClick={closeVideoCall}
+                >
+                    ⏹ Leave call
+                </button>
+            </header>
+
+            <div className="main-call__content">
+                <section className="main-call__remote">
+                    <h2 className="main-call__section-title">Participants</h2>
+                    <div className="main-call__remote-grid">
+                        {[...receivedVideoRefs.current.entries()].map(([remoteUsername, ref]) => (
+                            <div key={remoteUsername} className="main-call__remote-tile">
+                                <video
+                                    ref={ref}
+                                    autoPlay
+                                    playsInline
+                                    className="main-call__remote-video"
+                                />
+                                <div className="main-call__remote-label">
+                                    {remoteUsername}
+                                </div>
+                            </div>
+                        ))}
+                        {receivedVideoRefs.current.size === 0 && (
+                            <div className="main-call__empty">
+                                Waiting for other participants to join…
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                <aside className="main-call__sidebar">
+                    <h2 className="main-call__section-title">You</h2>
+                    <div className="main-call__local-wrapper">
+                        <video
+                            className="main-call__local-video"
+                            ref={localVideoRef}
+                            autoPlay
+                            muted
+                            playsInline
+                        />
+                        <div className="main-call__local-label">
+                            {username} (you)
+                        </div>
+                    </div>
+                    <div className="main-call__info">
+                        <p>Targets:</p>
+                        <ul>
+                            {targetUsernames.map((u) => (
+                                <li key={u}>{u}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    )
 }
