@@ -1,9 +1,10 @@
 import { WebSocketContext } from "../context/WebSocketContextProvider";
 import { RTCPeerConnectionContext } from "../context/RTCPeerConnectionContextProvider";
+import type { RTCPeerConnectionContextType } from "../context/RTCPeerConnectionContextProvider";
 import { useContext, useEffect,useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import * as CustomTypes from "../types.js"
-
+import React from "react";
 /*
 useState() vs useRef() for storing RTCPeerConnection:
 since RTCPeerConnection chnages frequently, but we dont want react component to rerender everytime it changes
@@ -12,36 +13,46 @@ since RTCPeerConnection chnages frequently, but we dont want react component to 
 
 export function MainCall(){
     const socket = useContext<WebSocket|null>(WebSocketContext);
-    const myPeerConnection=useContext<RTCPeerConnection|null>(RTCPeerConnectionContext);
-    const receivedVideoRef = useRef<HTMLVideoElement|null>(null);
+    const RTCContext=useContext<RTCPeerConnectionContextType|null>(RTCPeerConnectionContext);
+    if(!RTCContext) throw new Error("RTCContext is null");
+    const myPeerConnections:React.RefObject<Map<string,RTCPeerConnection>> = RTCContext.myPeerConnections;
+    const receivedVideoRefs = useRef<Map<string,React.RefObject<HTMLVideoElement|null>>>(new Map<string,React.RefObject<HTMLVideoElement|null>>());
     const localVideoRef = useRef<HTMLVideoElement|null>(null);
     const hangUpButtonRef = useRef<HTMLButtonElement|null>(null);
     const location = useLocation();
     const state:CustomTypes.landingToMainCallLocationStateType = location.state;
     const username:string = state.username;
     const role:string = state.role;
-    const pendingICECandidates = useRef<RTCIceCandidateInit[]>([]);
-    let targetUsername:string = state.targetUsername;
+    const targetUsernames:string[] = state.targetUsernames;
+    const pendingICECandidates = useRef<Map<string,RTCIceCandidateInit[]>>(new Map<string,RTCIceCandidateInit[]>());
+    const [, forceRender] = React.useReducer(x => x + 1, 0);
     function closeVideoCall() {
-        if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
+        if(!receivedVideoRefs.current) throw new Error("receivedVideoRefs is null");
         if(!localVideoRef.current) throw new Error("localVideoRef is null");
-        const receivedStream = receivedVideoRef.current.srcObject;
+        const receivedStreams:Map<string,React.RefObject<HTMLVideoElement|null>> = receivedVideoRefs.current;
+        for(const [targetUsername,myPeerConnection] of myPeerConnections.current){
+            if (myPeerConnection) {
+                myPeerConnection.ontrack = null;
+                myPeerConnection.onicecandidate = null;
+                myPeerConnection.onnegotiationneeded = null;
+                if(receivedStreams.has(targetUsername)){
+                    if(!receivedStreams.get(targetUsername)){
+                        console.log(`${targetUsername} stream is null in receivedStreams of ${username}`);
+                        receivedStreams.delete(targetUsername);
+                        continue;
+                    }
+                    //@ts-ignore
+                    const receivedStream:MediaStream = receivedStreams.get(targetUsername).srcObject;
+                    if (receivedStream) { // .getTrack() only works on MediaStream
+                        receivedStream.getTracks().forEach((track) => track.stop());
+                    }
+                }
+                myPeerConnection.close();
+            }
+        }
         const localStream = localVideoRef.current.srcObject;
-
-        if (myPeerConnection) {
-            myPeerConnection.ontrack = null;
-            myPeerConnection.onicecandidate = null;
-            myPeerConnection.onnegotiationneeded = null;
-
-            if (receivedStream && receivedStream instanceof MediaStream) { // .getTrack() only works on MediaStream
-                receivedStream.getTracks().forEach((track) => track.stop());
-            }
-
-            if (localStream && localStream instanceof MediaStream) { // .getTracks() only works on MediaStream 
-                localStream.getTracks().forEach((track) => track.stop());
-            }
-
-            myPeerConnection.close();
+        if (localStream && localStream instanceof MediaStream) { // .getTracks() only works on MediaStream 
+            localStream.getTracks().forEach((track) => track.stop());
         }
         if(!hangUpButtonRef.current) throw new Error("hangUpButtonRef is null")
         hangUpButtonRef.current.disabled = true;
@@ -49,26 +60,38 @@ export function MainCall(){
         window.location.href="/";
     }
 
-    function handleTrackEvent(event:RTCTrackEvent){
-        console.log(`${username}:[handleTrackEvent]`)
-        if(!receivedVideoRef.current) throw new Error("receivedVideoRef is null");
+    function handleTrackEvent(event:RTCTrackEvent,targetUsername:string){
+        console.log(`${username}:[handleTrackEvent],targetUsername:${targetUsername}`)
+        const receivedVideoRef:React.RefObject<HTMLVideoElement|null>|undefined = receivedVideoRefs.current.get(targetUsername);
+        if(!receivedVideoRef) {
+            console.log(`receivedVideoRef is not in receivedVideoRefs.current for username:${username}, targetUsername:${targetUsername}`);
+            return;
+        }
         if(!hangUpButtonRef.current) throw new Error("hangUpButtonRef is null");
+        if(!receivedVideoRef.current){
+            console.log(`receivedVideoRef is null for username:${username}, targetUsername:${targetUsername}`);
+            return;
+        }
         if(receivedVideoRef.current.srcObject !==event.streams[0]){
             receivedVideoRef.current.srcObject = event.streams[0];
         }
         hangUpButtonRef.current.disabled=false;
     }
 
-    function handleIceCandidateEvent(event:RTCPeerConnectionIceEvent){
-        console.log(`${username}:[handleIceCandidateEvent]`)
-        if(!myPeerConnection) throw new Error("peerConnection is null");
+    function handleIceCandidateEvent(event:RTCPeerConnectionIceEvent,targetUsername:string){
+        console.log(`${username}:[handleIceCandidateEvent] targetUsername:${targetUsername}`)
+        const myPeerConnection:RTCPeerConnection|undefined = myPeerConnections.current.get(targetUsername);
+        if(!myPeerConnection){
+            console.log(`myPeerConnection is null for username:${username} and targetUsername:${targetUsername}`)
+            return;
+        }
         if(myPeerConnection.iceConnectionState=="closed" || myPeerConnection.iceConnectionState=="failed"){
             closeVideoCall();
         }
         if(event.candidate){
             if(!socket) throw new Error("socket is null");
-            const send_message:CustomTypes.newIceCandidateType={
-                type:"new-ice-candidate",
+            const send_message:CustomTypes.outgoingNewIceCandidateType={
+                type:"new-ice-candidate-outgoing",
                 username:username,
                 target:targetUsername,
                 candidate:event.candidate
@@ -77,11 +100,15 @@ export function MainCall(){
         }
     }
 
-    async function handleNegotationNeededEvent(event:Event){
+    async function handleNegotationNeededEvent(_event:Event,targetUsername:string){
         // "In WebRTC, adding a track automatically fires the onnegotiationneeded event"
-        console.log(`${username}:[handleNegotiationNeededEvent]`)
+        console.log(`${username}:[handleNegotiationNeededEvent] targetUsername:${targetUsername}`)
         if(role == "callee") return;
-        if(!myPeerConnection) throw new Error("peer connection is null");
+        const myPeerConnection:RTCPeerConnection|undefined = myPeerConnections.current.get(targetUsername);
+        if(!myPeerConnection){
+            console.log(`myPeerConnection is null for username:${username} and targetUsername:${targetUsername}`)
+            return;
+        }
         if (myPeerConnection.signalingState !== "stable") {
             console.log("Negotiation already in progress, skipping...");
             return;
@@ -90,8 +117,8 @@ export function MainCall(){
             const offer:RTCSessionDescriptionInit = await myPeerConnection.createOffer();
             await myPeerConnection.setLocalDescription(offer);
             if(!socket) throw new Error("socket is null");
-            const json_message:CustomTypes.videoOfferType ={
-                type:"video-offer",
+            const json_message:CustomTypes.outgoingVideoOfferType ={
+                type:"video-offer-outgoing",
                 username:username,
                 target:targetUsername,
                 sdp:offer
@@ -103,23 +130,45 @@ export function MainCall(){
         }
     }
 
-    function createPeerConnection():RTCPeerConnection{
-        if(!myPeerConnection) throw new Error("peerConnection is null");
-        myPeerConnection.ontrack=handleTrackEvent;
-        myPeerConnection.onicecandidate=handleIceCandidateEvent;
-        myPeerConnection.onnegotiationneeded=handleNegotationNeededEvent;
+    function createPeerConnection(targetUsername:string):RTCPeerConnection{
+        const myPeerConnection:RTCPeerConnection = new RTCPeerConnection({
+            iceServers:[ 
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ]
+        })
+        myPeerConnection.ontrack=(event:RTCTrackEvent)=>{
+            handleTrackEvent(event,targetUsername);
+        }
+        myPeerConnection.onicecandidate=(event:RTCPeerConnectionIceEvent)=>{
+            handleIceCandidateEvent(event,targetUsername);
+        }
+        myPeerConnection.onnegotiationneeded=(event:Event)=>{
+            handleNegotationNeededEvent(event,targetUsername)
+        }
         return myPeerConnection;
     }
 
-    async function handleVideoOffer(json_message:CustomTypes.videoOfferType){
-        targetUsername=json_message.username;
-        const myPeerConnection:RTCPeerConnection = createPeerConnection();
+    async function handleVideoOffer(json_message:CustomTypes.incomingVideoOfferType){
+        console.log(`[handleVideoOffer] username:${username}, targetUsername:${json_message.username}`)
+        let targetUsername=json_message.username;
+        const myPeerConnection:RTCPeerConnection = createPeerConnection(targetUsername);
+        myPeerConnections.current.set(targetUsername,myPeerConnection);
+        if(!receivedVideoRefs.current.has(targetUsername)){
+            const videoRef = React.createRef<HTMLVideoElement|null>();
+            receivedVideoRefs.current.set(targetUsername,videoRef)
+            forceRender();
+        }
         const desc:RTCSessionDescription = new RTCSessionDescription(json_message.sdp);
         await myPeerConnection.setRemoteDescription(desc);
-        for(const candidate of pendingICECandidates.current){
-            myPeerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        const candidates:RTCIceCandidateInit[]|undefined = pendingICECandidates.current.get(targetUsername);
+        if(candidates){
+            for(const candidate of candidates){
+                myPeerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error);
+            }
+            pendingICECandidates.current.set(targetUsername,[]);
         }
-        pendingICECandidates.current=[];
         const mediaConstraints = {
             audio:true,
             video:true
@@ -149,19 +198,45 @@ export function MainCall(){
     }
 
     async function handleVideoAnswer(json_message:CustomTypes.videoAnswerType){
+        const targetUsername:string = json_message.username;
+        const myPeerConnection:RTCPeerConnection|undefined = myPeerConnections.current.get(targetUsername);
+        if(!myPeerConnection){
+            console.log(`myPeerConnection is null for username:${username} and targetUsername:${targetUsername}`)
+            return;
+        }
         if(!myPeerConnection) throw new Error("peerConnection is null");
         const desc:RTCSessionDescription = new RTCSessionDescription(json_message.sdp);
         await myPeerConnection.setRemoteDescription(desc);
-        for(const candidate of pendingICECandidates.current){
-            await myPeerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error);
+        const candidates:RTCIceCandidateInit[]|undefined = pendingICECandidates.current.get(targetUsername);
+        if(candidates){
+            for(const candidate of candidates){
+                await myPeerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error);
+            }
+            pendingICECandidates.current.set(targetUsername,[]);
         }
-        pendingICECandidates.current=[];
     }
 
-    async function handleNewIceCandidate(json_message:CustomTypes.newIceCandidateType){
-        if(!myPeerConnection) throw new Error("peerConnection is null");
+    async function handleNewIceCandidate(json_message:CustomTypes.incomingNewIceCandidateType){
+        const targetUsername:string = json_message.username;
+        if(!receivedVideoRefs.current.has(targetUsername)){
+            const videoRef = React.createRef<HTMLVideoElement|null>();
+            receivedVideoRefs.current.set(targetUsername,videoRef)
+            forceRender();
+        }
+        const myPeerConnection:RTCPeerConnection|undefined = myPeerConnections.current.get(targetUsername);
+        if(!myPeerConnection){
+            console.log(`myPeerConnection is null for username:${username} and targetUsername:${targetUsername}`)
+            return;
+        }
         if(!myPeerConnection.remoteDescription){
-            pendingICECandidates.current.push(json_message.candidate);
+            const prev:RTCIceCandidateInit[]|undefined = pendingICECandidates.current.get(targetUsername);
+            if(prev){
+                prev.push(json_message.candidate);
+                pendingICECandidates.current.set(targetUsername,prev);
+            }
+            else{
+                pendingICECandidates.current.set(targetUsername,[json_message.candidate])
+            }
             return; //will handle these after setting remote description
         }
         try{
@@ -172,9 +247,44 @@ export function MainCall(){
             console.log(e);
         }
     }
+    async function handleDisconnectUser(json_message:CustomTypes.disconnectVideoCallRequestType){
+        const targetUsername:string = json_message.username;
+        const receivedStreams:Map<string,React.RefObject<HTMLVideoElement|null>> = receivedVideoRefs.current;
+        for(const [altUsername,myPeerConnection] of myPeerConnections.current){
+            if (targetUsername==altUsername && myPeerConnection) {
+                myPeerConnection.ontrack = null;
+                myPeerConnection.onicecandidate = null;
+                myPeerConnection.onnegotiationneeded = null;
+                if(receivedStreams.has(targetUsername)){
+                    if(!receivedStreams.get(targetUsername)){
+                        console.log(`${targetUsername} stream is null in receivedStreams of ${username}`);
+                        receivedStreams.delete(targetUsername);
+                        continue;
+                    }
+                    const receivedVideoRef:React.RefObject<HTMLVideoElement|null>|undefined = receivedStreams.get(targetUsername);
+                    if(receivedVideoRef){
+                        const receivedStreamHTML:HTMLVideoElement|null = receivedVideoRef.current;
+                        if(!receivedStreamHTML){
+                            console.log(`receivedVideoRef.current is null for ${targetUsername}`);
+                            continue;
+                        }
+                        else{
+                            const receivedStream = receivedStreamHTML.srcObject as MediaStream;
+                            if (receivedStream) { // .getTrack() only works on MediaStream
+                                receivedStream.getTracks().forEach((track) => track.stop());
+                            }
+                            receivedVideoRef.current=null;
+                        }
+                    }
+                    receivedStreams.delete(targetUsername);
+                }
+                myPeerConnection.close();
+            }
+        }
+        forceRender();
+    }
     useEffect(()=>{ //landing to maincall page rtc caller/callee split
         if(role == "caller"){
-            const myPeerConnection:RTCPeerConnection=createPeerConnection();
             async function getUserMedia(){
                 const mediaConstraints = {
                     audio:true,
@@ -190,14 +300,23 @@ export function MainCall(){
                 }
                 return stream;
             }
-            getUserMedia().then((stream:MediaStream)=>{
-                if (!localVideoRef.current) throw new Error("localVideoRef is null");
-                localVideoRef.current.srcObject = stream; 
-                const tracks:MediaStreamTrack[] = stream.getTracks();
-                for(const track of tracks){
-                    myPeerConnection.addTrack(track,stream);
+            for(const targetUsername of targetUsernames){
+                const myPeerConnection:RTCPeerConnection=createPeerConnection(targetUsername);
+                myPeerConnections.current.set(targetUsername,myPeerConnection);
+                if(!receivedVideoRefs.current.has(targetUsername)){
+                    const videoRef = React.createRef<HTMLVideoElement|null>();
+                    receivedVideoRefs.current.set(targetUsername,videoRef);
+                    forceRender();
                 }
-            })
+                getUserMedia().then((stream:MediaStream)=>{
+                    if (!localVideoRef.current) throw new Error("localVideoRef is null");
+                    localVideoRef.current.srcObject = stream; 
+                    const tracks:MediaStreamTrack[] = stream.getTracks();
+                    for(const track of tracks){
+                        myPeerConnection.addTrack(track,stream);
+                    }
+                })
+            }
         }
     },[])
 
@@ -205,14 +324,17 @@ export function MainCall(){
         if(!socket) return;
         socket.onmessage=async (msg:MessageEvent<string>)=>{
             const json_message:CustomTypes.frontendType=JSON.parse(msg.data);
-            if(json_message.type=="video-offer"){
+            if(json_message.type=="video-offer-incoming"){
                 await handleVideoOffer(json_message);
             }
             else if(json_message.type=="video-answer"){
                 await handleVideoAnswer(json_message);
             }
-            else if(json_message.type=="new-ice-candidate"){
+            else if(json_message.type=="new-ice-candidate-incoming"){
                 await handleNewIceCandidate(json_message);
+            }
+            else if(json_message.type=="disconnect-user"){
+                await handleDisconnectUser(json_message);
             }
         }
         return ()=>{
@@ -221,7 +343,14 @@ export function MainCall(){
 
     },[socket])
     return <>
-    <video className="received_video" ref={receivedVideoRef} autoPlay playsInline></video>
+    {[...receivedVideoRefs.current.entries()].map(([username, ref]) => {
+    return <video
+      key={username}
+      ref={ref}
+      autoPlay
+      playsInline
+    />}
+    )}
     <video className="local_video" ref={localVideoRef} autoPlay muted playsInline></video>
     <button className="hang-up-button" ref={hangUpButtonRef} onClick={closeVideoCall}>Hang Up</button>
     </>

@@ -12,10 +12,16 @@ export const RTCIceCandidateSchema = z.custom<RTCIceCandidateInit>(
     },"Expected as RTCIceCandidateInit object"
 )
 
-export const videoOfferSchema=z.object({
-    type:z.literal("video-offer"),
+export const outgoingVideoOfferSchema=z.object({
+    type:z.literal("video-offer-outgoing"),
     username:z.string(),
     target:z.string(),
+    sdp:RTCSessionDescriptionSchema
+})
+
+export const incomingVideoOfferSchema=z.object({
+    type:z.literal("video-offer-incoming"),
+    username:z.string(),
     sdp:RTCSessionDescriptionSchema
 })
 
@@ -26,10 +32,16 @@ export const videoAnswerSchema=z.object({
     sdp:RTCSessionDescriptionSchema
 })
 
-export const newIceCandidateSchema=z.object({
-    type:z.literal("new-ice-candidate"),
+export const outgoingNewIceCandidateSchema=z.object({
+    type:z.literal("new-ice-candidate-outgoing"),
     username:z.string(),
     target:z.string(),
+    candidate:RTCIceCandidateSchema
+})
+
+export const incomingNewIceCandidateSchema=z.object({
+    type:z.literal("new-ice-candidate-incoming"),
+    username:z.string(),
     candidate:RTCIceCandidateSchema
 })
 
@@ -38,7 +50,12 @@ export const wsMakeUserRequestSchema=z.object({ //not sending roomCode because t
     username:z.string()
 })
 
-export const frontendSchema=z.union([videoOfferSchema,videoAnswerSchema,newIceCandidateSchema,wsMakeUserRequestSchema])
+export const disconnectVideoCallRequestSchema=z.object({
+    type:z.literal("disconnect-user"),
+    username:z.string()
+})
+
+export const frontendSchema=z.union([incomingVideoOfferSchema,outgoingVideoOfferSchema,videoAnswerSchema,outgoingNewIceCandidateSchema,incomingNewIceCandidateSchema,wsMakeUserRequestSchema,disconnectVideoCallRequestSchema])
 
 export const makeUserRequestSchema=z.object({
     type:z.literal("make-user"),
@@ -49,15 +66,15 @@ export const makeUserRequestSchema=z.object({
 export const makeUserResponseSchema=z.object({
     type:z.literal("make-user"),
     success:z.enum(["yes","no"]),
-    role:z.enum(["caller","callee"]),
-    targetUsername:z.string(),
+    role:z.enum(["caller","callee","nothing"]),
+    targetUsernames:z.array(z.string()),
     error:z.optional(z.string())
 })
 
 
-export const landingToMainCallLocationState=z.object({
+export const landingToMainCallLocationStateSchema=z.object({
     username:z.string(),
     roomID:z.string(),
-    role:z.enum(["caller","callee"]),
-    targetUsername:z.string()
+    role:z.enum(["caller","callee","nothing"]),
+    targetUsernames:z.array(z.string())
 })

@@ -1,10 +1,13 @@
 import * as CustomSchemas from "./schemas.js"
 import {z} from "zod"
 
-export type videoOfferType = z.infer<typeof CustomSchemas.videoOfferSchema>
+export type outgoingVideoOfferType = z.infer<typeof CustomSchemas.outgoingVideoOfferSchema>
+export type incomingVideoOfferType = z.infer<typeof CustomSchemas.incomingVideoOfferSchema>
 export type videoAnswerType = z.infer<typeof CustomSchemas.videoAnswerSchema>
-export type newIceCandidateType = z.infer<typeof CustomSchemas.newIceCandidateSchema>
+export type outgoingNewIceCandidateType = z.infer<typeof CustomSchemas.outgoingNewIceCandidateSchema>
+export type incomingNewIceCandidateType = z.infer<typeof CustomSchemas.incomingNewIceCandidateSchema>
 export type wsMakeUserRequestType = z.infer<typeof CustomSchemas.wsMakeUserRequestSchema>
+export type disconnectVideoCallRequestType = z.infer<typeof CustomSchemas.disconnectVideoCallRequestSchema>
 export type frontendType = z.infer<typeof CustomSchemas.frontendSchema>
 
 export type makeUserRequestType = z.infer<typeof CustomSchemas.makeUserRequestSchema>

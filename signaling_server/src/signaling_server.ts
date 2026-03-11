@@ -1,9 +1,9 @@
+import { createServer } from "http"; 
 import WebSocket,{WebSocketServer} from "ws";
 import express from "express"
 import cors from "cors"
 import * as CustomSchemas from "./schemas.js"
 import * as CustomTypes from "./types.js"
-import {createServer} from "http"
 
 let wsToUsername=new Map<WebSocket,string>();
 let usernameToWs=new Map<string,WebSocket>();
@@ -16,7 +16,7 @@ app.use(cors({
 }));
 app.use(express.json());
 const server = createServer(app);
-const wss = new WebSocketServer({server});
+const wss = new WebSocketServer({ server });
 
 function printMapStringStringList(mpp:Map<string,string[]>){
     for(const [key,value] of mpp){
@@ -53,8 +53,8 @@ wss.on("connection",function(ws:WebSocket){
             wsToUsername.set(ws,json_message.username);
             usernameToWs.set(json_message.username,ws);
         }
-        else if(json_message.type=="new-ice-candidate" || json_message.type=="video-answer" || json_message.type=="video-offer"){
-            console.log(`ws [${json_message.type}] from username ${json_message.username} to target_username ${json_message.target}`)
+        else if(json_message.type=="new-ice-candidate-outgoing" || json_message.type=="video-offer-outgoing"){
+            console.log(`ws [${json_message.type}] from username ${json_message.username} to target ${json_message.target}`)
             if(!wsToUsername.has(ws)) console.log("this ws doesnt isnt registered in wsToUsername");
             else{
                 //@ts-ignore
@@ -64,7 +64,45 @@ wss.on("connection",function(ws:WebSocket){
                 const usernames:string[]|undefined = roomCodeToUsernames.get(roomCode);
                 if(!usernames) throw new Error("roomCode not registered in roomCodeToUsernames");
                 for(const alt_username of usernames){
-                    if(alt_username!=username){
+                    const target_username:string = json_message.target;
+                    if(alt_username!=username && alt_username==target_username){
+                        const alt_ws:WebSocket|undefined=usernameToWs.get(alt_username);
+                        if(!alt_ws){
+                            console.log(`${alt_username} isnt registered in usernameToWs so skipping it(not sending it)`)
+                            continue;
+                        }
+                        if(json_message.type=="new-ice-candidate-outgoing"){
+                            const new_json_message:CustomTypes.incomingNewIceCandidateType={
+                                type:"new-ice-candidate-incoming",
+                                username:json_message.username,
+                                candidate:json_message.candidate
+                            }
+                            alt_ws.send(JSON.stringify(new_json_message));
+                        }
+                        else if(json_message.type=="video-offer-outgoing"){
+                            const new_json_message:CustomTypes.incomingVideoOfferType={
+                                type:"video-offer-incoming",
+                                username:json_message.username,
+                                sdp:json_message.sdp
+                            }
+                            alt_ws.send(JSON.stringify(new_json_message));
+                        }
+                    }
+                }
+            }
+        }
+        else if(json_message.type=="video-answer"){
+            console.log(`ws [${json_message.type}] from username ${json_message.username} to target ${json_message.target}`)
+            if(!wsToUsername.has(ws)) console.log("this ws doesnt isnt registered in wsToUsername");
+            else{
+                //@ts-ignore
+                const username:string = wsToUsername.get(ws);
+                const roomCode:string|undefined = usernameToRoomCode.get(username);
+                if(!roomCode) throw new Error("user not registered in usernameToRoomCode map");
+                const usernames:string[]|undefined = roomCodeToUsernames.get(roomCode);
+                if(!usernames) throw new Error("roomCode not registered in roomCodeToUsernames");
+                for(const alt_username of usernames){
+                    if(alt_username!=username && alt_username==json_message.target){
                         const alt_ws:WebSocket|undefined=usernameToWs.get(alt_username);
                         if(!alt_ws){
                             console.log(`${alt_username} isnt registered in usernameToWs so skipping it(not sending it)`)
@@ -94,6 +132,18 @@ wss.on("connection",function(ws:WebSocket){
                     if(usernames){
                         const index:number=usernames.indexOf(username);
                         if(index>-1) usernames.splice(index,1);
+                        for(const alt_username of usernames){
+                            if(alt_username!=username){
+                                const alt_ws:WebSocket|undefined = usernameToWs.get(alt_username);
+                                if(alt_ws){
+                                    const json_message:CustomTypes.disconnectVideoCallRequestType = {
+                                        type:"disconnect-user",
+                                        username:username
+                                    }
+                                    alt_ws.send(JSON.stringify(json_message));
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -113,61 +163,56 @@ app.post("/make-user",async(req,res)=>{
     const username:string=reqBody.username;
     const roomCode:string=reqBody.roomCode;
     if(usernameToRoomCode.has(username)){
-        res.send({
+        const json_message:CustomTypes.makeUserResponseType = {
             type:"make-user",
             success:"no",
             role:"nothing",
-            targetUsername:"nothing",
+            targetUsernames:[],
             error:"duplicate username in usernameToRoomCode"
-        });
+        }
+        res.send(json_message);
     }
     else if(roomCodeToUsernames.has(roomCode)){
         //@ts-ignore
-        if(roomCodeToUsernames.get(roomCode).length>=2){
-            res.send({
-                type:"make-user",
-                success:"no",
-                role:"nothing",
-                targetUsername:"nothing",
-                error:"room is already full"
-            });
-        }
-        //@ts-ignore
-        else if(roomCodeToUsernames.get(roomCode).length==0){
+        if(roomCodeToUsernames.get(roomCode).length==0){
             roomCodeToUsernames.set(roomCode,[username]);
             usernameToRoomCode.set(username,roomCode);
-            res.send({
+            const json_message:CustomTypes.makeUserResponseType = {
                 type:"make-user",
                 success:"yes",
                 role:"callee",
-                targetUsername:"nothing"
-            })
+                targetUsernames:[]
+            }
+            res.send(json_message)
         }
         else{
             //@ts-ignore
             const prev:string[] = roomCodeToUsernames.get(roomCode);
             roomCodeToUsernames.set(roomCode,[...prev,username]);
             usernameToRoomCode.set(username,roomCode);
-            res.send({
+            const json_message:CustomTypes.makeUserResponseType = {
                 type:"make-user",
                 success:"yes",
                 role:"caller",
-                targetUsername:prev[0]
-            });
+                targetUsernames:prev
+            }
+            res.send(json_message);
         }
     }
     else{
         usernameToRoomCode.set(username,roomCode);
         roomCodeToUsernames.set(roomCode,[username]);
-        res.send({
+        const json_message:CustomTypes.makeUserResponseType = {
             type:"make-user",
             success:"yes",
             role:"callee",
-            targetUsername:"nothing"
-        })
+            targetUsernames:[]
+        }
+        res.send(json_message);
     }
 })
 
-server.listen(3000,()=>{
-    console.log("http and ws server are running at port 3000\n")
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
 });
