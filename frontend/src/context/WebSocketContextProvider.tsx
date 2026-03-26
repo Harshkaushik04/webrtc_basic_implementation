@@ -8,7 +8,7 @@ export const WebSocketContext=createContext<WebSocket|null>(null);
 export function WebSocketContextProvider({children}:Props){
     const [socket,setSocket]=useState<WebSocket|null>(null);
     useEffect(()=>{
-        const ws = new WebSocket("ws://52.237.88.144:3000");
+        const ws = new WebSocket("wss://flat-lines-begin.loca.lt");
         setSocket(ws);
         return ()=>{
             ws.close();

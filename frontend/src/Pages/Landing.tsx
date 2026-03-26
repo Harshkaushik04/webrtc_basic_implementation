@@ -21,7 +21,7 @@ export function Landing(){
         buttonRef.current.disabled=true;
         if(!usernameRef.current) throw new Error("usernameref.current is null");
         if(!RoomCodeRef.current) throw new Error("RoomCodeRef.current is null");
-        const res = await axios.post("http://52.237.88.144:3000/make-user",{
+        const res = await axios.post("https://flat-lines-begin.loca.lt/make-user",{
             type:"make-user",
             username:usernameRef.current?.value,
             roomCode:RoomCodeRef.current?.value
