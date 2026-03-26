@@ -44,7 +44,7 @@ function completeDebugging(){
     console.log("======================================");
 }   
 
-setInterval(() => completeDebugging(), 5000)
+setInterval(() => completeDebugging(), 10000)
 wss.on("connection",function(ws:WebSocket){
     ws.on("message",(msg:WebSocket.RawData)=>{
         const json_message:CustomTypes.frontendType=JSON.parse(msg.toString());

@@ -8,7 +8,7 @@ export const WebSocketContext=createContext<WebSocket|null>(null);
 export function WebSocketContextProvider({children}:Props){
     const [socket,setSocket]=useState<WebSocket|null>(null);
     useEffect(()=>{
-        const ws = new WebSocket("wss://webrtc-basic-implementation.onrender.com");
+        const ws = new WebSocket("wss://52.237.88.144:3000");
         setSocket(ws);
         return ()=>{
             ws.close();
